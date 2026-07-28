@@ -1,0 +1,263 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Rol {
+  id        Int       @id @default(autoincrement())
+  nombreRol String    @map("nombre_rol")
+  usuarios  Usuario[]
+}
+
+model Usuario {
+  id            Int      @id @default(autoincrement())
+  nombreUsuario String   @unique @map("nombre_usuario")
+  contrasena    String   @map("contraseña")
+  activo        Boolean  @default(true)
+  nombre        String
+  apellido      String
+  rolId         Int      @map("rol_id")
+  rol           Rol      @relation(fields: [rolId], references: [id])
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("usuarios")
+}
+
+model Alumno {
+  id          Int      @id @default(autoincrement())
+  dni         String   @unique
+  nombre      String
+  apellido    String
+  nacimiento  DateTime
+  direccion   String
+  telefono    String
+  estado      String   @default("activo")
+  fechaIngreso DateTime @map("fecha_ingreso")
+  fechaEgreso DateTime? @map("fecha_egreso")
+
+  inscripciones Inscripcion[]
+  asistencias   Asistencia[]
+  calificaciones Calificacion[]
+  seguimientos  Seguimiento[]
+  actas         Acta[]
+  acuerdos      Acuerdo[]
+  tutores       Tutor[]
+
+  @@map("alumnos")
+}
+
+model Curso {
+  id           Int      @id @default(autoincrement())
+  anio         Int      @map("año")
+  division     String   @map("división")
+  turno        String
+  orientacion  String
+  cicloLectivo Int      @map("ciclo_lectivo")
+  estado       String   @default("activo")
+
+  inscripciones    Inscripcion[]
+  materias         CursoMateria[]
+  modulosSemanales ModuloSemanal[]
+  diasSinClases    DiaSinClases[]
+
+  @@map("cursos")
+}
+
+model Inscripcion {
+  id              Int      @id @default(autoincrement())
+  alumnoId        Int      @map("alumno_id")
+  cursoId         Int      @map("curso_id")
+  fechaInscripcion DateTime @default(now()) @map("fecha_inscripcion")
+  estado          String   @default("activo")
+
+  alumno Alumno @relation(fields: [alumnoId], references: [id])
+  curso  Curso  @relation(fields: [cursoId], references: [id])
+
+  @@unique([alumnoId, cursoId])
+  @@map("inscripciones")
+}
+
+model Docente {
+  id          Int       @id @default(autoincrement())
+  dni         String    @unique
+  nombre      String
+  apellido    String
+  telefono    String
+  email       String    @unique
+  fechaIngreso DateTime @map("fecha_ingreso")
+  estado      String    @default("activo")
+
+  materias         DocenteMateria[]
+  licencias        Licencia[]
+  modulosSemanales ModuloSemanal[]
+
+  @@map("docentes")
+}
+
+model Materia {
+  id     Int    @id @default(autoincrement())
+  nombre String
+
+  docentes         DocenteMateria[]
+  calificaciones   Calificacion[]
+  cursos           CursoMateria[]
+  modulosSemanales ModuloSemanal[]
+
+  @@map("materias")
+}
+
+model DocenteMateria {
+  docenteId Int @map("docente_id")
+  materiaId Int @map("materia_id")
+
+  docente Docente @relation(fields: [docenteId], references: [id])
+  materia Materia @relation(fields: [materiaId], references: [id])
+
+  @@id([docenteId, materiaId])
+  @@map("docentes_materias")
+}
+
+model CursoMateria {
+  cursoId          Int @map("curso_id")
+  materiaId        Int @map("materia_id")
+  cargaHoraria     Int @map("carga_horaria")
+  modulosPorSemana Int @default(0) @map("modulos_por_semana")
+
+  curso   Curso   @relation(fields: [cursoId], references: [id])
+  materia Materia @relation(fields: [materiaId], references: [id])
+
+  @@id([cursoId, materiaId])
+  @@map("cursos_materias")
+}
+
+model Asistencia {
+  id           Int      @id @default(autoincrement())
+  alumnoId     Int      @map("alumno_id")
+  fecha        DateTime @default(now())
+  estado       String   @default("ausente")
+  justificacion String?
+  observacion  String?
+
+  alumno Alumno @relation(fields: [alumnoId], references: [id])
+
+  @@map("asistencias")
+}
+
+model Calificacion {
+  id          Int      @id @default(autoincrement())
+  alumnoId    Int      @map("alumno_id")
+  materiaId   Int      @map("materia_id")
+  nota        Float
+  trimestre   Int
+  fecha       DateTime @default(now())
+  observacion String?
+
+  alumno  Alumno  @relation(fields: [alumnoId], references: [id])
+  materia Materia @relation(fields: [materiaId], references: [id])
+
+  @@map("calificaciones")
+}
+
+model Acta {
+  id          Int      @id @default(autoincrement())
+  alumnoId    Int      @map("alumno_id")
+  fecha       DateTime @default(now())
+  tipo        String
+  descripcion String
+  numero      String
+
+  alumno Alumno @relation(fields: [alumnoId], references: [id])
+
+  @@map("actas")
+}
+
+model Acuerdo {
+  id          Int      @id @default(autoincrement())
+  alumnoId    Int      @map("alumno_id")
+  fecha       DateTime @default(now())
+  tipo        String   @default("alumno")
+  descripcion String
+  estado      String   @default("pendiente")
+
+  alumno Alumno @relation(fields: [alumnoId], references: [id])
+
+  @@map("acuerdos")
+}
+
+model Seguimiento {
+  id          Int      @id @default(autoincrement())
+  alumnoId    Int      @map("alumno_id")
+  fecha       DateTime @default(now())
+  tipo        String
+  titulo      String
+  descripcion String
+  estado      String   @default("pendiente")
+
+  alumno Alumno @relation(fields: [alumnoId], references: [id])
+
+  @@map("seguimientos")
+}
+
+model Tutor {
+  id       Int    @id @default(autoincrement())
+  alumnoId Int    @map("alumno_id")
+  nombre   String
+  apellido String
+  dni      String
+
+  alumno Alumno @relation(fields: [alumnoId], references: [id])
+
+  @@map("tutores")
+}
+
+model Licencia {
+  id          Int       @id @default(autoincrement())
+  docenteId   Int       @map("docente_id")
+  fechaInicio DateTime  @map("fecha_inicio")
+  fechaFin    DateTime  @map("fecha_fin")
+  codigo      String    @default("LIC-OTRO")
+  motivo      String
+  estado      String    @default("pendiente")
+  observacion String?
+
+  docente Docente @relation(fields: [docenteId], references: [id])
+
+  @@map("licencias")
+}
+
+model ModuloSemanal {
+  id               Int      @id @default(autoincrement())
+  docenteId        Int      @map("docente_id")
+  cursoId          Int      @map("curso_id")
+  materiaId        Int      @map("materia_id")
+  semanaInicio     DateTime @map("semana_inicio")
+  modulosPrevistos Int      @map("modulos_previstos")
+  modulosDictados  Int      @map("modulos_dictados")
+  factor           String?
+  observacion      String?
+
+  docente Docente @relation(fields: [docenteId], references: [id])
+  curso   Curso   @relation(fields: [cursoId], references: [id])
+  materia Materia @relation(fields: [materiaId], references: [id])
+
+  @@unique([cursoId, materiaId, docenteId, semanaInicio])
+  @@map("modulos_semanales")
+}
+
+model DiaSinClases {
+  id          Int      @id @default(autoincrement())
+  fecha       DateTime
+  tipo        String   // "feriado" | "paro"
+  descripcion String?
+  cursoId     Int?     @map("curso_id")
+  createdAt   DateTime @default(now())
+
+  curso Curso? @relation(fields: [cursoId], references: [id])
+  @@unique([fecha, tipo, cursoId])
+  @@map("dias_sin_clases")
+}
