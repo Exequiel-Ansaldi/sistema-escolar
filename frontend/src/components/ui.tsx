@@ -8,7 +8,7 @@ export function DataTable({ columns, data, onEdit, onDelete, loading }: { column
   if (loading) return <div className="text-center py-12 text-gray-400 animate-pulse">Cargando...</div>;
   if (!data.length) return <div className="text-center py-12 text-gray-400 bg-white rounded-xl border border-gray-200 shadow-sm">No hay datos</div>;
   return (
-    <div className="overflow-hidden bg-white rounded-xl border border-gray-200 shadow-sm">
+    <div className="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-gray-50 border-b border-gray-200">

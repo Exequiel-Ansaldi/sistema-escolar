@@ -27,8 +27,8 @@ export function AlumnosPage() {
       return nombre.includes(nombreFilter.toLowerCase()) && dni.includes(dniFilter);
     }),
     filters: <>
-      <input value={dniFilter} onChange={e => setDniFilter(e.target.value)} placeholder="DNI" className="w-32 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
-      <input value={nombreFilter} onChange={e => setNombreFilter(e.target.value)} placeholder="Nombre" className="w-44 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
+      <input value={dniFilter} onChange={e => setDniFilter(e.target.value)} placeholder="DNI" className="w-full sm:w-32 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
+      <input value={nombreFilter} onChange={e => setNombreFilter(e.target.value)} placeholder="Nombre" className="w-full sm:w-44 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
     </>
   })} />;
 }
@@ -96,8 +96,8 @@ export function DocentesPage() {
       return nombre.includes(nombreFilter.toLowerCase()) && dni.includes(dniFilter);
     }),
     filters: <>
-      <input value={dniFilter} onChange={e => setDniFilter(e.target.value)} placeholder="DNI" className="w-32 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
-      <input value={nombreFilter} onChange={e => setNombreFilter(e.target.value)} placeholder="Nombre" className="w-44 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
+      <input value={dniFilter} onChange={e => setDniFilter(e.target.value)} placeholder="DNI" className="w-full sm:w-32 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
+      <input value={nombreFilter} onChange={e => setNombreFilter(e.target.value)} placeholder="Nombre" className="w-full sm:w-44 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
     </>
   })} />;
 }

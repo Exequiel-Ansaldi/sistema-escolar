@@ -56,8 +56,8 @@ export function CalificacionesPage() {
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <div className="flex flex-wrap items-center gap-3">
-          <input value={dniFilter} onChange={e => setDniFilter(e.target.value)} placeholder="DNI" className="w-32 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
-          <input value={nombreFilter} onChange={e => setNombreFilter(e.target.value)} placeholder="Nombre" className="w-44 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
+          <input value={dniFilter} onChange={e => setDniFilter(e.target.value)} placeholder="DNI" className="w-full sm:w-32 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
+          <input value={nombreFilter} onChange={e => setNombreFilter(e.target.value)} placeholder="Nombre" className="w-full sm:w-44 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
           <select value={alumnoId} onChange={e => { setAlumnoId(e.target.value); }} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Alumno</option>
             {alumnosFiltrados.map(a => <option key={a.id} value={a.id}>{a.apellido}, {a.nombre}</option>)}
