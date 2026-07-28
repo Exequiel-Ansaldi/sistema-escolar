@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://sistema-escolar-api.onrender.com/api/$1"
+      "destination": "https://sistema-escolar-qlzk.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
