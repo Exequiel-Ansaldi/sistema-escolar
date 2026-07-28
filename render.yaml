@@ -14,6 +14,6 @@ services:
       - key: JWT_EXPIRES_IN
         value: 8h
       - key: CORS_ORIGIN
-        value: https://sistema-escolar.vercel.app
+        value: https://sistema-escolar-inky.vercel.app
       - key: PORT
         value: "3000"
