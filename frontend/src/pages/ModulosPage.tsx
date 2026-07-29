@@ -57,7 +57,7 @@ export function ModulosPage() {
     let cancelled = false;
     setLoading(true);
     (async () => {
-      try { const r = await api.getModulosSemana(mesActual, page); if (!cancelled) { setRegistros(r.data); setTotalPages(r.totalPages); } }
+      try { const r = await api.getModulosSemana(mesActual, page); if (!cancelled) { setRegistros(r.data ?? []); setTotalPages(r.totalPages ?? 1); } }
       catch (err: any) { if (!cancelled) { setToast({ message: err.message, type: 'error' }); setRegistros([]); } }
       finally { if (!cancelled) setLoading(false); }
     })();
@@ -83,8 +83,8 @@ export function ModulosPage() {
   const totalDictados = filtered.reduce((s, r) => s + r.modulosDictados, 0);
 
   const [y, m] = mesActual.split('-').map(Number);
-  const prevMonth = () => setMesActual(m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`);
-  const nextMonth = () => setMesActual(m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`);
+  const prevMonth = () => { setPage(1); setMesActual(m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`); };
+  const nextMonth = () => { setPage(1); setMesActual(m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`); };
 
   const save = async (body: any) => {
     const data = {
