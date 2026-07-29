@@ -15,8 +15,7 @@ export class AlumnosController {
   ) {
     const p = page ? parseInt(page, 10) : 1;
     const l = limit ? parseInt(limit, 10) : 10;
-    if (search) return this.alumnosService.search(search);
-    return this.alumnosService.findAll(p, l);
+    return this.alumnosService.findAll(p, l, search || undefined);
   }
 
   @Get(':id')

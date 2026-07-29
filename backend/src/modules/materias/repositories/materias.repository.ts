@@ -3,16 +3,20 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
 import { CrearMateriaDto } from '../dto/crear-materia.dto';
 import { ActualizarMateriaDto } from '../dto/actualizar-materia.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class MateriasRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(page = 1, limit = 10): Promise<PaginatedResult<any>> {
+  async findAll(page = 1, limit = 10, search?: string): Promise<PaginatedResult<any>> {
     const skip = (page - 1) * limit;
+    const where: Prisma.MateriaWhereInput = search
+      ? { nombre: { contains: search, mode: 'insensitive' } }
+      : {};
     const [data, total] = await Promise.all([
-      this.prisma.materia.findMany({ skip, take: limit, orderBy: { nombre: 'asc' } }),
-      this.prisma.materia.count(),
+      this.prisma.materia.findMany({ skip, take: limit, where, orderBy: { nombre: 'asc' } }),
+      this.prisma.materia.count({ where }),
     ]);
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }

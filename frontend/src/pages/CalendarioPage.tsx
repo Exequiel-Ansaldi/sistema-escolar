@@ -4,7 +4,8 @@ import { DataTable, FormModal, Button, Badge, Toast, ConfirmModal } from '../com
 
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const ANIOS = [2026, 2027, 2028];
+const anioActual = new Date().getFullYear();
+const ANIOS = Array.from({ length: 5 }, (_, i) => anioActual - 1 + i);
 
 const badgeVariant: Record<string, 'warning' | 'danger' | 'default'> = {
   feriado: 'warning',

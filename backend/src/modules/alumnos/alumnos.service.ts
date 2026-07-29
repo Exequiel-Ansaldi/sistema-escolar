@@ -7,18 +7,14 @@ import { ActualizarAlumnoDto } from './dto/actualizar-alumno.dto';
 export class AlumnosService {
   constructor(private alumnosRepository: AlumnosRepository) {}
 
-  async findAll(page = 1, limit = 10) {
-    return this.alumnosRepository.findAll(page, limit);
+  async findAll(page = 1, limit = 10, search?: string) {
+    return this.alumnosRepository.findAll(page, limit, search);
   }
 
   async findById(id: number) {
     const alumno = await this.alumnosRepository.findById(id);
     if (!alumno) throw new NotFoundException('Alumno no encontrado');
     return alumno;
-  }
-
-  async search(termino: string) {
-    return this.alumnosRepository.search(termino);
   }
 
   async create(dto: CrearAlumnoDto) {

@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { DataTable, FormModal, Input, Button, ConfirmModal, Pagination } from '../components/ui';
 import { useCrud } from '../hooks/useCrud';
 import { Plus } from 'lucide-react';
@@ -8,20 +8,26 @@ interface CrudPageProps {
   title: string;
   columns: { key: string; label: string; render?: (value: any, row: any) => any }[];
   fields: { key: string; label: string; type?: string; required?: boolean; options?: { value: string | number; label: string }[]; min?: number; max?: string }[];
-  fetchFn: (page: number, limit: number) => Promise<PaginatedResult<any>>;
+  fetchFn: (page: number, limit: number, filters?: Record<string, string>) => Promise<PaginatedResult<any>>;
   createFn: (body: any) => Promise<any>;
   updateFn: (id: number, body: any) => Promise<any>;
   deleteFn: (id: number) => Promise<any>;
-  renderFilters?: (data: any[]) => { filtered: any[]; filters: ReactNode };
+  renderFilters?: () => ReactNode;
+  filterParams?: Record<string, string>;
 }
 
-export function CrudPage({ title, columns, fields, fetchFn, createFn, updateFn, deleteFn, renderFilters }: CrudPageProps) {
-  const { data, loading, editing, showForm, pendingDelete, deleting, openCreate, openEdit, closeForm, save, confirmRemove, cancelDelete, executeDelete, error, page, totalPages, changePage } = useCrud(fetchFn, createFn, updateFn, deleteFn);
+export function CrudPage({ title, columns, fields, fetchFn, createFn, updateFn, deleteFn, renderFilters, filterParams = {} }: CrudPageProps) {
+  const { data, loading, editing, showForm, pendingDelete, deleting, openCreate, openEdit, closeForm, save, confirmRemove, cancelDelete, executeDelete, error, page, totalPages, changePage, setFilters } = useCrud(fetchFn, createFn, updateFn, deleteFn, filterParams);
 
-  const { filtered, filters } = useMemo(() => {
-    if (renderFilters) return renderFilters(data);
-    return { filtered: data, filters: null };
-  }, [data, renderFilters]);
+  const prevParams = useRef(filterParams);
+  useEffect(() => {
+    if (JSON.stringify(prevParams.current) !== JSON.stringify(filterParams)) {
+      prevParams.current = filterParams;
+      setFilters(filterParams);
+    }
+  }, [filterParams, setFilters]);
+
+  const filters = useMemo(() => renderFilters?.() ?? null, [renderFilters]);
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -33,7 +39,7 @@ export function CrudPage({ title, columns, fields, fetchFn, createFn, updateFn, 
         <Button onClick={openCreate} variant="primary"><Plus size={16} /> Nuevo</Button>
       </div>
       {filters && <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5"><div className="flex flex-wrap items-center gap-3">{filters}</div></div>}
-      <DataTable columns={columns} data={filtered} loading={loading} onEdit={openEdit} onDelete={confirmRemove} />
+      <DataTable columns={columns} data={data} loading={loading} onEdit={openEdit} onDelete={confirmRemove} />
       <Pagination page={page} totalPages={totalPages} onPageChange={changePage} />
       {showForm && (
         <FormModal title={editing?.id ? `Editar ${title}` : `Nuevo ${title}`} onClose={closeForm}>

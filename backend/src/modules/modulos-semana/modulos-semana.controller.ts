@@ -1,5 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Param, Query, Body, ParseIntPipe } from '@nestjs/common';
 import { ModulosSemanaService } from './modulos-semana.service';
+import { CrearModuloSemanaDto } from './dto/crear-modulo-semana.dto';
+import { ActualizarModuloSemanaDto } from './dto/actualizar-modulo-semana.dto';
 
 @Controller('modulos-semana')
 export class ModulosSemanaController {
@@ -11,13 +13,13 @@ export class ModulosSemanaController {
   }
 
   @Post()
-  upsert(@Body() body: any) {
-    return this.service.upsert(body);
+  upsert(@Body() dto: CrearModuloSemanaDto) {
+    return this.service.upsert(dto);
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
-    return this.service.update(id, body);
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: ActualizarModuloSemanaDto) {
+    return this.service.update(id, dto);
   }
 
   @Delete(':id')

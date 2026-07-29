@@ -48,6 +48,10 @@ export class CalificacionesRepository {
     });
   }
 
+  findById(id: number) {
+    return this.prisma.calificacion.findUnique({ where: { id } });
+  }
+
   create(data: CrearCalificacionDto) {
     return this.prisma.calificacion.create({
       data: {

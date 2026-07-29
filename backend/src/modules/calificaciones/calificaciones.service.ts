@@ -45,4 +45,10 @@ export class CalificacionesService {
     if (!materia) throw new NotFoundException('Materia no encontrada');
     return this.calificacionesRepository.create(dto);
   }
+
+  async update(id: number, dto: Partial<CrearCalificacionDto>) {
+    const existe = await this.calificacionesRepository.findById(id);
+    if (!existe) throw new NotFoundException('Calificación no encontrada');
+    return this.calificacionesRepository.update(id, dto);
+  }
 }

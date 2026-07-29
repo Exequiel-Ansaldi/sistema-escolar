@@ -1,4 +1,5 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
@@ -18,7 +19,7 @@ import { DiasSinClasesModule } from './modules/dias-sin-clases/dias-sin-clases.m
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { LoggerMiddleware } from './middleware/logger.middleware';
-import { AuditMiddleware } from './middleware/audit.middleware';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import appConfig from './config/app.config';
 
 @Module({
@@ -42,10 +43,12 @@ import appConfig from './config/app.config';
     DashboardModule,
     ReportesModule,
   ],
+  providers: [
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(LoggerMiddleware).forRoutes('*');
-    consumer.apply(AuditMiddleware).forRoutes('*');
   }
 }

@@ -3,16 +3,26 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CrearDocenteDto } from '../dto/crear-docente.dto';
 import { ActualizarDocenteDto } from '../dto/actualizar-docente.dto';
 import { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class DocentesRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(page = 1, limit = 10): Promise<PaginatedResult<any>> {
+  async findAll(page = 1, limit = 10, search?: string): Promise<PaginatedResult<any>> {
     const skip = (page - 1) * limit;
+    const where: Prisma.DocenteWhereInput = search
+      ? {
+          OR: [
+            { nombre: { contains: search, mode: 'insensitive' } },
+            { apellido: { contains: search, mode: 'insensitive' } },
+            { dni: { contains: search } },
+          ],
+        }
+      : {};
     const [data, total] = await Promise.all([
-      this.prisma.docente.findMany({ skip, take: limit, orderBy: { apellido: 'asc' } }),
-      this.prisma.docente.count(),
+      this.prisma.docente.findMany({ skip, take: limit, where, orderBy: { apellido: 'asc' } }),
+      this.prisma.docente.count({ where }),
     ]);
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }

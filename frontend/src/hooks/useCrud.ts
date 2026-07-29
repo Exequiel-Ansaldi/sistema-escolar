@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { PaginatedResult } from '../services/api';
 
 export function useCrud<T extends { id: number }>(
-  fetchFn: (page: number, limit: number) => Promise<PaginatedResult<T>>,
+  fetchFn: (page: number, limit: number, filters?: Record<string, string>) => Promise<PaginatedResult<T>>,
   createFn: (body: any) => Promise<T>,
   updateFn: (id: number, body: any) => Promise<T>,
   deleteFn: (id: number) => Promise<any>,
+  initialFilters?: Record<string, string>,
 ) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,11 +17,12 @@ export function useCrud<T extends { id: number }>(
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const filtersRef = useRef(initialFilters ?? {});
 
-  const load = useCallback(async (p?: number) => {
+  const load = useCallback(async (p?: number, f?: Record<string, string>) => {
     setLoading(true);
     try {
-      const res = await fetchFn(p ?? page, 10);
+      const res = await fetchFn(p ?? page, 10, f ?? filtersRef.current);
       setData(res.data);
       setTotalPages(res.totalPages);
       setTotal(res.total);
@@ -34,6 +36,12 @@ export function useCrud<T extends { id: number }>(
   const changePage = (p: number) => {
     setPage(p);
     load(p);
+  };
+
+  const setFilters = (f: Record<string, string>) => {
+    filtersRef.current = f;
+    setPage(1);
+    load(1, f);
   };
 
   const openCreate = () => { setEditing({}); setShowForm(true); };
@@ -63,5 +71,5 @@ export function useCrud<T extends { id: number }>(
     try { await deleteFn(pendingDelete.id); setPendingDelete(null); load(); } finally { setDeleting(false); }
   };
 
-  return { data, loading, editing, showForm, pendingDelete, deleting, openCreate, openEdit, closeForm, save, confirmRemove, cancelDelete, executeDelete, load, error, setError, page, totalPages, total, changePage };
+  return { data, loading, editing, showForm, pendingDelete, deleting, openCreate, openEdit, closeForm, save, confirmRemove, cancelDelete, executeDelete, load, error, setError, page, totalPages, total, changePage, setFilters };
 }

@@ -3,21 +3,32 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CrearAlumnoDto } from '../dto/crear-alumno.dto';
 import { ActualizarAlumnoDto } from '../dto/actualizar-alumno.dto';
 import { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AlumnosRepository {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(page = 1, limit = 10): Promise<PaginatedResult<any>> {
+  async findAll(page = 1, limit = 10, search?: string): Promise<PaginatedResult<any>> {
     const skip = (page - 1) * limit;
+    const where: Prisma.AlumnoWhereInput = search
+      ? {
+          OR: [
+            { nombre: { contains: search, mode: 'insensitive' } },
+            { apellido: { contains: search, mode: 'insensitive' } },
+            { dni: { contains: search } },
+          ],
+        }
+      : {};
     const [data, total] = await Promise.all([
       this.prisma.alumno.findMany({
         skip,
         take: limit,
+        where,
         orderBy: { apellido: 'asc' },
         include: { inscripciones: { include: { curso: true } } },
       }),
-      this.prisma.alumno.count(),
+      this.prisma.alumno.count({ where }),
     ]);
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
@@ -34,19 +45,6 @@ export class AlumnosRepository {
 
   findByDni(dni: string) {
     return this.prisma.alumno.findUnique({ where: { dni } });
-  }
-
-  search(termino: string) {
-    return this.prisma.alumno.findMany({
-      where: {
-        OR: [
-          { nombre: { contains: termino, mode: 'insensitive' } },
-          { apellido: { contains: termino, mode: 'insensitive' } },
-          { dni: { contains: termino } },
-        ],
-      },
-      orderBy: { apellido: 'asc' },
-    });
   }
 
   create(data: CrearAlumnoDto) {

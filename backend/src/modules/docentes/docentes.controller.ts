@@ -8,10 +8,10 @@ export class DocentesController {
   constructor(private docentesService: DocentesService) {}
 
   @Get()
-  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string, @Query('search') search?: string) {
     const p = page ? parseInt(page, 10) : 1;
     const l = limit ? parseInt(limit, 10) : 10;
-    return this.docentesService.findAll(p, l);
+    return this.docentesService.findAll(p, l, search || undefined);
   }
 
   @Get(':id')

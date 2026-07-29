@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Param, Body, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Body, ParseIntPipe } from '@nestjs/common';
 import { CalificacionesService } from './calificaciones.service';
 import { CrearCalificacionDto } from './dto/crear-calificacion.dto';
+import { ActualizarCalificacionDto } from './dto/actualizar-calificacion.dto';
 
 @Controller('calificaciones')
 export class CalificacionesController {
@@ -37,5 +38,10 @@ export class CalificacionesController {
   @Post()
   create(@Body() dto: CrearCalificacionDto) {
     return this.calificacionesService.create(dto);
+  }
+
+  @Put(':id')
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: ActualizarCalificacionDto) {
+    return this.calificacionesService.update(id, dto);
   }
 }
