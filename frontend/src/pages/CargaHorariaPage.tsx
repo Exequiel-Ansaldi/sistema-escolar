@@ -1,13 +1,15 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { FormModal, Select, Input, Button, Toast, Pagination } from '../components/ui';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 
+const PAGE_SIZE = 10;
+
 export function CargaHorariaPage() {
   const [cursos, setCursos] = useState<any[]>([]);
   const [materias, setMaterias] = useState<any[]>([]);
-  const [rows, setRows] = useState<any[]>([]);
-  const [tableRows, setTableRows] = useState<any[]>([]);
+  const [grupos, setGrupos] = useState<any[]>([]);
+  const [allAsignaciones, setAllAsignaciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [anioFilter, setAnioFilter] = useState('');
   const [divisionFilter, setDivisionFilter] = useState('');
@@ -15,50 +17,33 @@ export function CargaHorariaPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const [totalPages, setTotalPages] = useState(1);
   const [cursoIdForm, setCursoIdForm] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    Promise.all([api.getAllCursos(), api.getAllMaterias()]).then(([c, m]) => {
+    Promise.all([api.getAllCursos(), api.getAllMaterias(), api.getAllCargaHoraria()]).then(([c, m, r]) => {
       setCursos(c.filter((x: any) => x.estado === 'activo'));
       setMaterias(m);
+      setAllAsignaciones(r);
     });
   }, []);
 
-  useEffect(() => {
-    if (cursos.length > 0) load(anioFilter || undefined, divisionFilter || undefined, turnoFilter || undefined);
-  }, [cursos]);
+  const load = () => {
+    setLoading(true);
+    api.getCargaHorariaGrupos(page, PAGE_SIZE, anioFilter || undefined, divisionFilter || undefined, turnoFilter || undefined)
+      .then(r => { setGrupos(r.data); setTotalPages(r.totalPages ?? 1); })
+      .catch((err: any) => setToast({ message: err.message, type: 'error' }))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { if (cursos.length > 0) load(); }, [cursos, page, anioFilter, divisionFilter, turnoFilter]);
 
   const aniosDisponibles = [...new Set(cursos.map(c => c.anio))].sort();
   const divisionesDisponibles = [...new Set(cursos
     .filter(c => !anioFilter || c.anio === Number(anioFilter))
     .map(c => c.division))].sort();
   const turnosDisponibles = ['mañana', 'tarde', 'noche'];
-
-  const load = async (anio?: string, division?: string, turno?: string) => {
-    setLoading(true);
-    try {
-      const data = await api.getAllCargaHoraria(anio, division, turno);
-      setRows(data);
-      const cf = cursos.filter(c =>
-        (!anio || c.anio === Number(anio)) &&
-        (!division || c.division === division) &&
-        (!turno || c.turno === turno)
-      );
-      const merged: any[] = [];
-      for (const curso of cf) {
-        const records = data.filter(r => r.cursoId === curso.id);
-        if (records.length > 0) merged.push(...records);
-        else merged.push({ _placeholder: true, curso, cursoId: curso.id, materia: null, materiaId: null, modulosPorSemana: null, cargaHoraria: null });
-      }
-      setTableRows(merged);
-    }
-    catch (err: any) { setToast({ message: err.message, type: 'error' }); setRows([]); setTableRows([]); }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { load(anioFilter || undefined, divisionFilter || undefined, turnoFilter || undefined); }, [anioFilter, divisionFilter, turnoFilter]);
 
   const save = async (body: any) => {
     const id = editing ? editing.cursoId : Number(cursoIdForm);
@@ -73,21 +58,23 @@ export function CargaHorariaPage() {
         setToast({ message: 'Módulos actualizados', type: 'success' });
       } else {
         if (!materiaId) { setToast({ message: 'Seleccioná una materia', type: 'error' }); return; }
-        const yaExiste = rows.find(r => r.materiaId === materiaId && r.cursoId === curso.id);
+        const yaExiste = allAsignaciones.find(r => r.materiaId === materiaId && r.cursoId === curso.id);
         if (yaExiste) { setToast({ message: 'Esa materia ya está asignada a este curso', type: 'error' }); return; }
         await api.asignarMateriaCurso({ cursoId: curso.id, materiaId, cargaHoraria: Math.round(modulosPorSemana * 40 / 60), modulosPorSemana });
+        setAllAsignaciones(prev => [...prev, { cursoId: curso.id, materiaId }]);
         setToast({ message: 'Materia asignada', type: 'success' });
       }
       setShowForm(false); setEditing(null);
-      load(anioFilter || undefined, divisionFilter || undefined, turnoFilter || undefined);
+      load();
     } catch (err: any) { setToast({ message: err.message, type: 'error' }); }
   };
 
   const quitar = async (row: any) => {
     try {
       await api.quitarMateriaCurso(row.cursoId, row.materiaId);
+      setAllAsignaciones(prev => prev.filter(r => !(r.cursoId === row.cursoId && r.materiaId === row.materiaId)));
       setToast({ message: 'Materia quitada', type: 'success' });
-      load(anioFilter || undefined, divisionFilter || undefined, turnoFilter || undefined);
+      load();
     } catch (err: any) { setToast({ message: err.message, type: 'error' }); }
   };
 
@@ -96,23 +83,6 @@ export function CargaHorariaPage() {
     (!divisionFilter || c.division === divisionFilter) &&
     (!turnoFilter || c.turno === turnoFilter)
   );
-
-  const grupos = useMemo(() => {
-    const map = new Map<number, any[]>();
-    for (const r of tableRows) {
-      const key = r.curso?.id ?? r.cursoId;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(r);
-    }
-    return Array.from(map.entries()).map(([cursoId, items]) => ({ cursoId, curso: items[0].curso, items }));
-  }, [tableRows]);
-
-  const gruposPaginados = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return grupos.slice(start, start + PAGE_SIZE);
-  }, [grupos, page]);
-
-  const totalPages = Math.max(1, Math.ceil(grupos.length / PAGE_SIZE));
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -126,15 +96,15 @@ export function CargaHorariaPage() {
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <div className="flex flex-wrap items-center gap-3">
-          <select value={anioFilter} onChange={e => setAnioFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <select value={anioFilter} onChange={e => { setAnioFilter(e.target.value); setPage(1); }} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Todos los años</option>
             {aniosDisponibles.map(a => <option key={a} value={a}>{a}°</option>)}
           </select>
-          <select value={divisionFilter} onChange={e => setDivisionFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <select value={divisionFilter} onChange={e => { setDivisionFilter(e.target.value); setPage(1); }} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Todas las divisiones</option>
             {divisionesDisponibles.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
-          <select value={turnoFilter} onChange={e => setTurnoFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <select value={turnoFilter} onChange={e => { setTurnoFilter(e.target.value); setPage(1); }} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Todos los turnos</option>
             {turnosDisponibles.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
@@ -145,7 +115,7 @@ export function CargaHorariaPage() {
         <div className="text-center py-12 text-gray-400 text-sm bg-white rounded-xl border border-gray-200 shadow-sm">No hay cursos que coincidan con los filtros</div>
       ) : loading ? (
         <div className="text-center py-12 text-gray-400 animate-pulse bg-white rounded-xl border border-gray-200 shadow-sm">Cargando...</div>
-      ) : tableRows.length === 0 ? (
+      ) : grupos.length === 0 ? (
         <div className="text-center py-12 text-gray-400 text-sm bg-white rounded-xl border border-gray-200 shadow-sm">
           {cursosFiltrados.length > 0 ? 'Usá "+ Agregar materia" para asignar materias' : 'No hay datos'}
         </div>
@@ -162,15 +132,16 @@ export function CargaHorariaPage() {
               </tr>
             </thead>
             <tbody>
-              {gruposPaginados.map((grupo, gi) => {
-                const cursoLabel = grupo.curso ? `${grupo.curso.anio}°${grupo.curso.division} - ${grupo.curso.turno}` : '-';
+              {grupos.map((curso: any, gi: number) => {
+                const cursoLabel = `${curso.anio}°${curso.division} - ${curso.turno}`;
+                const items = curso.materias?.length > 0 ? curso.materias : [{ _placeholder: true }];
                 const isLastGroup = gi === grupos.length - 1;
-                return grupo.items.map((item: any, ri: number) => {
-                  const isLastRow = ri === grupo.items.length - 1;
+                return items.map((item: any, ri: number) => {
+                  const isLastRow = ri === items.length - 1;
                   return (
-                    <tr key={`${grupo.cursoId}-${ri}`} className={`transition-colors hover:bg-blue-50/40 ${gi % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'} ${isLastRow && !isLastGroup ? 'border-b-2 border-gray-200' : 'border-b border-gray-100'}`}>
+                    <tr key={`${curso.id}-${ri}`} className={`transition-colors hover:bg-blue-50/40 ${gi % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'} ${isLastRow && !isLastGroup ? 'border-b-2 border-gray-200' : 'border-b border-gray-100'}`}>
                       {ri === 0 ? (
-                        <td rowSpan={grupo.items.length} className={`px-5 py-3 font-medium align-top ${grupo.items[0]._placeholder ? 'text-gray-300' : 'text-gray-800'}`}>{cursoLabel}</td>
+                        <td rowSpan={items.length} className="px-5 py-3 font-medium align-top text-gray-800">{cursoLabel}</td>
                       ) : null}
                       <td className="px-5 py-3 text-gray-700">
                         {item._placeholder ? <span className="text-gray-300 italic">Sin materias</span> : item.materia?.nombre ?? '-'}
@@ -180,7 +151,7 @@ export function CargaHorariaPage() {
                       <td className="px-5 py-3">
                         {!item._placeholder && (
                           <div className="flex items-center justify-end gap-1">
-                            <button onClick={() => { setEditing(item); setShowForm(true); }} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Editar"><Pencil size={16} /></button>
+                            <button onClick={() => { setEditing({ ...item, curso }); setShowForm(true); }} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Editar"><Pencil size={16} /></button>
                             <button onClick={() => quitar(item)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all" title="Eliminar"><Trash2 size={16} /></button>
                           </div>
                         )}
@@ -193,7 +164,7 @@ export function CargaHorariaPage() {
           </table>
         </div>
       )}
-      {grupos.length > 0 && <Pagination page={page} totalPages={totalPages} onPageChange={p => { setPage(p); }} />}
+      {grupos.length > 0 && <Pagination page={page} totalPages={totalPages} onPageChange={p => setPage(p)} />}
 
       {showForm && <FormModal title={editing ? 'Editar carga horaria' : 'Asignar materia al curso'} onClose={() => { setShowForm(false); setEditing(null); }}>
         <form onSubmit={e => { e.preventDefault(); save(Object.fromEntries(new FormData(e.currentTarget))); }}>
@@ -214,7 +185,7 @@ export function CargaHorariaPage() {
                 <option value="">Seleccionar...</option>
                 {editing
                   ? materias.filter(m => m.id === editing.materiaId).map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)
-                  : materias.filter(m => !rows.find(r => r.materiaId === m.id && r.cursoId === Number(cursoIdForm))).map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)
+                  : materias.filter(m => !allAsignaciones.find((r: any) => r.materiaId === m.id && r.cursoId === Number(cursoIdForm))).map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)
                 }
               </Select>
               <Input label="Módulos por semana (c/u = 40 min)" name="modulosPorSemana" type="number" required min={1} defaultValue={editing?.modulosPorSemana} />

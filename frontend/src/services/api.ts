@@ -91,6 +91,13 @@ export const api = {
 
   getMateriasCurso: (cursoId: number) =>
     request<CursoMateria[]>(`/cursos-materias/curso/${cursoId}`),
+  getCargaHorariaGrupos: (page = 1, limit = 10, anio?: string, division?: string, turno?: string) => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (anio) params.set('anio', anio);
+    if (division) params.set('division', division);
+    if (turno) params.set('turno', turno);
+    return request<PaginatedResult<CursoMateria>>(`/cursos-materias/grupos?${params.toString()}`);
+  },
   getAllCargaHoraria: (anio?: string, division?: string, turno?: string) => {
     const params = new URLSearchParams();
     if (anio) params.set('anio', anio);

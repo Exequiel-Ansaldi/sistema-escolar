@@ -11,6 +11,11 @@ export class CursoMateriaController {
     return this.service.findAll(anio, division, turno, +page, +limit);
   }
 
+  @Get('grupos')
+  findGrupos(@Query('anio') anio?: string, @Query('division') division?: string, @Query('turno') turno?: string, @Query('page') page = 1, @Query('limit') limit = 10) {
+    return this.service.findGrupos(anio, division, turno, +page, +limit);
+  }
+
   @Get('curso/:cursoId')
   findByCurso(@Param('cursoId', ParseIntPipe) cursoId: number) {
     return this.service.findByCurso(cursoId);
