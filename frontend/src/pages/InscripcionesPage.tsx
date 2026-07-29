@@ -21,18 +21,10 @@ export function InscripcionesPage() {
   }, []);
 
   const load = (p?: number) => {
-    api.getInscripciones(p ?? page).then(r => { setInscripciones(r.data); setTotalPages(r.totalPages); });
+    api.getInscripciones(p ?? page).then(r => { setInscripciones(r.data ?? []); setTotalPages(r.totalPages ?? 1); }).catch((err: any) => setToast({ message: err.message, type: 'error' }));
   };
 
   useEffect(() => { load(); }, []);
-
-  const aniosDisponibles = [...new Set(cursos.map(c => c.anio))].sort();
-  const divisionesDisponibles = [...new Set(cursos
-    .filter(c => !anioFilter || c.anio === Number(anioFilter))
-    .map(c => c.division))].sort();
-  const turnosDisponibles = [...new Set(cursos
-    .filter(c => (!anioFilter || c.anio === Number(anioFilter)) && (!divisionFilter || c.division === divisionFilter))
-    .map(c => c.turno))].sort();
 
   const inscribir = async () => {
     if (!alumnoId || !cursoId) { setToast({ message: 'Seleccioná un alumno y un curso', type: 'error' }); return; }
