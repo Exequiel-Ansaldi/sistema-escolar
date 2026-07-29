@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CrearDiaSinClasesDto } from '../dto/crear-dia-sin-clases.dto';
+import type { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class DiasSinClasesRepository {
   constructor(private prisma: PrismaService) {}
 
-  find(desde?: Date, hasta?: Date, cursoId?: number) {
+  async find(desde?: Date, hasta?: Date, cursoId?: number, page = 1, limit = 10): Promise<PaginatedResult<any>> {
+    const skip = (page - 1) * limit;
     const where: any = {};
     if (desde || hasta) {
       where.fecha = {};
@@ -14,11 +16,17 @@ export class DiasSinClasesRepository {
       if (hasta) where.fecha.lte = hasta;
     }
     if (cursoId) where.cursoId = cursoId;
-    return this.prisma.diaSinClases.findMany({
-      where,
-      include: { curso: { select: { id: true, anio: true, division: true, turno: true, orientacion: true } } },
-      orderBy: { fecha: 'desc' },
-    });
+    const [data, total] = await Promise.all([
+      this.prisma.diaSinClases.findMany({
+        where,
+        include: { curso: { select: { id: true, anio: true, division: true, turno: true, orientacion: true } } },
+        orderBy: { fecha: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.diaSinClases.count({ where }),
+    ]);
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   create(dto: CrearDiaSinClasesDto) {

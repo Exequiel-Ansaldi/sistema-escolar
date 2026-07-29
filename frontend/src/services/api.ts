@@ -96,8 +96,9 @@ export const api = {
     if (anio) params.set('anio', anio);
     if (division) params.set('division', division);
     if (turno) params.set('turno', turno);
+    params.set('limit', '9999');
     const qs = params.toString();
-    return request<CursoMateria[]>(`/cursos-materias${qs ? `?${qs}` : ''}`);
+    return request<PaginatedResult<CursoMateria>>(`/cursos-materias?${qs}`).then(r => r.data);
   },
   asignarMateriaCurso: (body: { cursoId: number; materiaId: number; cargaHoraria: number; modulosPorSemana: number }) =>
     request<CursoMateria>('/cursos-materias', { method: 'POST', body: JSON.stringify(body) }),
@@ -106,6 +107,8 @@ export const api = {
   updateCargaHoraria: (cursoId: number, materiaId: number, body: { cargaHoraria?: number; modulosPorSemana?: number }) =>
     request<CursoMateria>(`/cursos-materias/${cursoId}/${materiaId}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
+  getInscripciones: (page = 1, limit = 10) =>
+    request<PaginatedResult<Inscripcion>>(`/inscripciones?page=${page}&limit=${limit}`),
   inscribir: (body: { alumnoId: number; cursoId: number }) =>
     request<Inscripcion>('/inscripciones', { method: 'POST', body: JSON.stringify(body) }),
   desinscribir: (alumnoId: number, cursoId: number) =>
@@ -165,8 +168,8 @@ export const api = {
   deleteLicencia: (id: number) =>
     request<void>(`/licencias/${id}`, { method: 'DELETE' }),
 
-  getModulosSemana: (mes: string) =>
-    request<ModuloSemanal[]>(`/modulos-semana?mes=${mes}`),
+  getModulosSemana: (mes: string, page = 1, limit = 10) =>
+    request<PaginatedResult<ModuloSemanal>>(`/modulos-semana?mes=${mes}&page=${page}&limit=${limit}`),
   upsertModuloSemana: (body: { docenteId: number; cursoId: number; materiaId: number; semanaInicio: string; modulosPrevistos: number; modulosDictados: number; factor?: string; observacion?: string }) =>
     request<ModuloSemanal>('/modulos-semana', { method: 'POST', body: JSON.stringify(body) }),
   updateModuloSemana: (id: number, body: Partial<ModuloSemanal>) =>
@@ -181,13 +184,15 @@ export const api = {
   getCalificacionesResumen: () =>
     request<{ promedioGeneral: number | null; notaMax: number | null; notaMin: number | null; total: number }>('/dashboard/calificaciones-resumen'),
 
-  getDiasSinClases: (params?: { desde?: string; hasta?: string; cursoId?: number }) => {
+  getDiasSinClases: (params?: { desde?: string; hasta?: string; cursoId?: number }, page = 1, limit = 10) => {
     const qs = new URLSearchParams();
     if (params?.desde) qs.set('desde', params.desde);
     if (params?.hasta) qs.set('hasta', params.hasta);
     if (params?.cursoId) qs.set('cursoId', String(params.cursoId));
+    qs.set('page', String(page));
+    qs.set('limit', String(limit));
     const s = qs.toString();
-    return request<DiaSinClases[]>(`/dias-sin-clases${s ? `?${s}` : ''}`);
+    return request<PaginatedResult<DiaSinClases>>(`/dias-sin-clases?${s}`);
   },
   crearDiaSinClases: (body: { fecha: string; tipo: string; descripcion?: string; cursoId?: number }) =>
     request<DiaSinClases>('/dias-sin-clases', { method: 'POST', body: JSON.stringify(body) }),

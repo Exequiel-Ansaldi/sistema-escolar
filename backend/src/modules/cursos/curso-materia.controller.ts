@@ -7,8 +7,8 @@ export class CursoMateriaController {
   constructor(private service: CursoMateriaService) {}
 
   @Get()
-  findAll(@Query('anio') anio?: string, @Query('division') division?: string, @Query('turno') turno?: string) {
-    return this.service.findAll(anio, division, turno);
+  findAll(@Query('anio') anio?: string, @Query('division') division?: string, @Query('turno') turno?: string, @Query('page') page = 1, @Query('limit') limit = 10) {
+    return this.service.findAll(anio, division, turno, +page, +limit);
   }
 
   @Get('curso/:cursoId')

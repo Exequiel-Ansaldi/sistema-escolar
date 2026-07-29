@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import { FormModal, Select, Input, Button, Toast } from '../components/ui';
+import { FormModal, Select, Input, Button, Toast, Pagination } from '../components/ui';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 
 export function CargaHorariaPage() {
@@ -14,6 +14,8 @@ export function CargaHorariaPage() {
   const [turnoFilter, setTurnoFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
   const [cursoIdForm, setCursoIdForm] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -105,6 +107,13 @@ export function CargaHorariaPage() {
     return Array.from(map.entries()).map(([cursoId, items]) => ({ cursoId, curso: items[0].curso, items }));
   }, [tableRows]);
 
+  const gruposPaginados = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return grupos.slice(start, start + PAGE_SIZE);
+  }, [grupos, page]);
+
+  const totalPages = Math.max(1, Math.ceil(grupos.length / PAGE_SIZE));
+
   return (
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -153,7 +162,7 @@ export function CargaHorariaPage() {
               </tr>
             </thead>
             <tbody>
-              {grupos.map((grupo, gi) => {
+              {gruposPaginados.map((grupo, gi) => {
                 const cursoLabel = grupo.curso ? `${grupo.curso.anio}°${grupo.curso.division} - ${grupo.curso.turno}` : '-';
                 const isLastGroup = gi === grupos.length - 1;
                 return grupo.items.map((item: any, ri: number) => {
@@ -184,6 +193,7 @@ export function CargaHorariaPage() {
           </table>
         </div>
       )}
+      {grupos.length > 0 && <Pagination page={page} totalPages={totalPages} onPageChange={p => { setPage(p); }} />}
 
       {showForm && <FormModal title={editing ? 'Editar carga horaria' : 'Asignar materia al curso'} onClose={() => { setShowForm(false); setEditing(null); }}>
         <form onSubmit={e => { e.preventDefault(); save(Object.fromEntries(new FormData(e.currentTarget))); }}>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { DataTable, FormModal, Select, Input, Button, Badge, Toast, ConfirmModal } from '../components/ui';
+import { DataTable, FormModal, Select, Input, Button, Badge, Toast, ConfirmModal, Pagination } from '../components/ui';
 
 const FACTORES = ['', 'ausencia', 'licencia', 'paro', 'asamblea', 'feriado', 'otro'];
 
@@ -39,6 +39,8 @@ export function ModulosPage() {
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const now = new Date();
   const [mesActual, setMesActual] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
@@ -55,12 +57,12 @@ export function ModulosPage() {
     let cancelled = false;
     setLoading(true);
     (async () => {
-      try { const d = await api.getModulosSemana(mesActual); if (!cancelled) setRegistros(d); }
+      try { const r = await api.getModulosSemana(mesActual, page); if (!cancelled) { setRegistros(r.data); setTotalPages(r.totalPages); } }
       catch (err: any) { if (!cancelled) { setToast({ message: err.message, type: 'error' }); setRegistros([]); } }
       finally { if (!cancelled) setLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [mesActual, refreshKey]);
+  }, [mesActual, page, refreshKey]);
 
   const aniosDisponibles = [...new Set(registros.map(r => r.curso?.anio).filter(Boolean))].sort();
   const divisionesDisponibles = [...new Set(registros
@@ -171,6 +173,7 @@ export function ModulosPage() {
         { key: 'factor', label: 'Factor', render: (v: string) => v ? <Badge variant={v === 'ausencia' || v === 'licencia' ? 'danger' : 'warning'}>{v}</Badge> : <Badge variant="success">normal</Badge> },
         { key: 'observacion', label: 'Obs.', render: (v: string) => v ?? '-' },
       ]} data={filtered} loading={loading} onEdit={(r) => { setEditing(r); setShowForm(true); }} onDelete={(r) => setDeleteTarget(r)} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       {showForm && <FormModal title={editing ? 'Editar Registro' : 'Registrar Módulos Semanales'} onClose={() => { setShowForm(false); setEditing(null); }}>
         <form onSubmit={e => { e.preventDefault(); const form = new FormData(e.currentTarget); const fecha = form.get('semanaInicio') as string; form.set('semanaInicio', getMonday(new Date(fecha)).toISOString().split('T')[0]); save(Object.fromEntries(form)); }}>

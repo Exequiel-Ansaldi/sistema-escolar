@@ -6,11 +6,11 @@ import { CrearDiaSinClasesDto } from './dto/crear-dia-sin-clases.dto';
 export class DiasSinClasesService {
   constructor(private repo: DiasSinClasesRepository) {}
 
-  listar(desde?: string, hasta?: string, cursoId?: string) {
+  listar(desde?: string, hasta?: string, cursoId?: string, page = 1, limit = 10) {
     const d = desde ? new Date(desde) : undefined;
     const h = hasta ? new Date(hasta) : undefined;
     const c = cursoId ? Number(cursoId) : undefined;
-    return this.repo.find(d, h, c);
+    return this.repo.find(d, h, c, page, limit);
   }
 
   crear(dto: CrearDiaSinClasesDto) {

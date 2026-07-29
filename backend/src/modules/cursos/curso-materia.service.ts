@@ -6,19 +6,27 @@ import { AsignarMateriaCursoDto } from './dto/asignar-materia-curso.dto';
 export class CursoMateriaService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(anio?: string, division?: string, turno?: string) {
-    return this.prisma.cursoMateria.findMany({
-      where: {
-        curso: {
-          estado: 'activo',
-          ...(anio ? { anio: Number(anio) } : {}),
-          ...(division ? { division } : {}),
-          ...(turno ? { turno } : {}),
-        },
+  async findAll(anio?: string, division?: string, turno?: string, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    const where = {
+      curso: {
+        estado: 'activo',
+        ...(anio ? { anio: Number(anio) } : {}),
+        ...(division ? { division } : {}),
+        ...(turno ? { turno } : {}),
       },
-      include: { materia: true, curso: true },
-      orderBy: [{ curso: { anio: 'asc' } }, { curso: { division: 'asc' } }, { materia: { nombre: 'asc' } }],
-    });
+    };
+    const [data, total] = await Promise.all([
+      this.prisma.cursoMateria.findMany({
+        where,
+        include: { materia: true, curso: true },
+        orderBy: [{ curso: { anio: 'asc' } }, { curso: { division: 'asc' } }, { materia: { nombre: 'asc' } }],
+        skip,
+        take: limit,
+      }),
+      this.prisma.cursoMateria.count({ where }),
+    ]);
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   findByCurso(cursoId: number) {

@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { FormModal, Toast, Button, Badge, ConfirmModal } from '../components/ui';
+import { FormModal, Toast, Button, Badge, ConfirmModal, Pagination } from '../components/ui';
 import { Users, BookOpen, Trash2 } from 'lucide-react';
 
 export function InscripcionesPage() {
@@ -12,24 +12,19 @@ export function InscripcionesPage() {
   const [showForm, setShowForm] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ alumnoId: number; cursoId: number; alumno: string } | null>(null);
-  const [dniFilter, setDniFilter] = useState('');
-  const [nombreFilter, setNombreFilter] = useState('');
-  const [anioFilter, setAnioFilter] = useState('');
-  const [divisionFilter, setDivisionFilter] = useState('');
-  const [turnoFilter, setTurnoFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  const load = useCallback(async () => {
-    const [a, c] = await Promise.all([api.getAllAlumnos(), api.getAllCursos()]);
-    setAlumnos(a.filter((x: any) => x.estado === 'activo'));
-    setCursos(c.filter((x: any) => x.estado === 'activo'));
-    const ins: any[] = [];
-    for (const al of a) {
-      if (al.inscripciones) al.inscripciones.forEach((i: any) => ins.push({ ...i, alumno: al }));
-    }
-    setInscripciones(ins);
+  useEffect(() => {
+    api.getAllAlumnos().then(a => setAlumnos(a.filter((x: any) => x.estado === 'activo')));
+    api.getAllCursos().then(c => setCursos(c.filter((x: any) => x.estado === 'activo')));
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const load = (p?: number) => {
+    api.getInscripciones(p ?? page).then(r => { setInscripciones(r.data); setTotalPages(r.totalPages); });
+  };
+
+  useEffect(() => { load(); }, []);
 
   const aniosDisponibles = [...new Set(cursos.map(c => c.anio))].sort();
   const divisionesDisponibles = [...new Set(cursos
@@ -53,15 +48,6 @@ export function InscripcionesPage() {
     catch (err: any) { setToast({ message: err.message, type: 'error' }); setPendingDelete(null); }
   };
 
-  const filtered = inscripciones.filter(i => {
-    const nombre = `${i.alumno?.apellido ?? ''} ${i.alumno?.nombre ?? ''}`.toLowerCase();
-    const dni = String(i.alumno?.dni ?? '');
-    return nombre.includes(nombreFilter.toLowerCase()) && dni.includes(dniFilter) &&
-      (!anioFilter || i.curso?.anio === Number(anioFilter)) &&
-      (!divisionFilter || i.curso?.division === divisionFilter) &&
-      (!turnoFilter || i.curso?.turno === turnoFilter);
-  });
-
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -72,31 +58,11 @@ export function InscripcionesPage() {
         <Button onClick={() => { setAlumnoId(''); setCursoId(''); setShowForm(true); }} variant="primary"><Users size={16} /> Inscribir</Button>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-        <div className="flex flex-wrap items-center gap-3">
-          <input value={dniFilter} onChange={e => setDniFilter(e.target.value)} placeholder="DNI" className="w-full sm:w-32 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
-          <input value={nombreFilter} onChange={e => setNombreFilter(e.target.value)} placeholder="Nombre" className="w-full sm:w-44 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
-          <select value={anioFilter} onChange={e => setAnioFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-            <option value="">Todos los años</option>
-            {aniosDisponibles.map(a => <option key={a} value={a}>{a}°</option>)}
-          </select>
-          <select value={divisionFilter} onChange={e => setDivisionFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-            <option value="">Todas las divisiones</option>
-            {divisionesDisponibles.map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
-          <select value={turnoFilter} onChange={e => setTurnoFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
-            <option value="">Todos los turnos</option>
-            {turnosDisponibles.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-      </div>
-
       <div className="overflow-hidden bg-white rounded-xl border border-slate-200 shadow-sm">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="font-semibold text-slate-700 text-sm">Inscripciones Registradas</h2>
-          <Badge variant="default">{filtered.length} registros</Badge>
         </div>
-        {filtered.length === 0 ? (
+        {inscripciones.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-slate-400">
             <BookOpen size={40} className="mb-3 text-slate-300" />
             <p className="text-sm font-medium">No hay inscripciones</p>
@@ -115,7 +81,7 @@ export function InscripcionesPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((i, idx) => (
+              {inscripciones.map((i, idx) => (
                 <tr key={`${i.alumnoId}-${i.cursoId}`} className={`border-b border-slate-100 transition-colors hover:bg-blue-50/40 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
                   <td className="px-5 py-3 text-slate-700 font-medium">{i.alumno?.apellido}, {i.alumno?.nombre}</td>
                   <td className="px-5 py-3 text-slate-600">{i.curso?.anio}°{i.curso?.division} - {i.curso?.turno}</td>
@@ -131,6 +97,7 @@ export function InscripcionesPage() {
           </table>
         )}
       </div>
+      <Pagination page={page} totalPages={totalPages} onPageChange={p => { setPage(p); load(p); }} />
 
       {showForm && <FormModal title="Nueva Inscripción" onClose={() => setShowForm(false)}>
         <div className="space-y-4">

@@ -11,8 +11,10 @@ export class DiasSinClasesController {
     @Query('desde') desde?: string,
     @Query('hasta') hasta?: string,
     @Query('cursoId') cursoId?: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
   ) {
-    return this.service.listar(desde, hasta, cursoId);
+    return this.service.listar(desde, hasta, cursoId, +page, +limit);
   }
 
   @Post()

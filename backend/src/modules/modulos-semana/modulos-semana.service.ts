@@ -7,8 +7,8 @@ import { ActualizarModuloSemanaDto } from './dto/actualizar-modulo-semana.dto';
 export class ModulosSemanaService {
   constructor(private repo: ModulosSemanaRepository) {}
 
-  findByMes(mes: string) {
-    return this.repo.findByMes(mes);
+  findByMes(mes: string, page = 1, limit = 10) {
+    return this.repo.findByMes(mes, page, limit);
   }
 
   async upsert(dto: CrearModuloSemanaDto) {

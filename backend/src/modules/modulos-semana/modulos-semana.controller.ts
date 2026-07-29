@@ -8,8 +8,8 @@ export class ModulosSemanaController {
   constructor(private service: ModulosSemanaService) {}
 
   @Get()
-  findByMes(@Query('mes') mes: string) {
-    return this.service.findByMes(mes);
+  findByMes(@Query('mes') mes: string, @Query('page') page = 1, @Query('limit') limit = 10) {
+    return this.service.findByMes(mes, +page, +limit);
   }
 
   @Post()

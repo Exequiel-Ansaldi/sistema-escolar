@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { DataTable, FormModal, Button, Badge, Toast, ConfirmModal } from '../components/ui';
+import { DataTable, FormModal, Button, Badge, Toast, ConfirmModal, Pagination } from '../components/ui';
 
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -19,6 +19,8 @@ export function CalendarioPage() {
   const [anio, setAnio] = useState(new Date().getFullYear());
   const [showForm, setShowForm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [deleting, setDeleting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -26,14 +28,14 @@ export function CalendarioPage() {
     api.getAllCursos().then(c => setCursos(c.filter((x: any) => x.estado === 'activo')));
   }, []);
 
-  const load = () => {
+  const load = (p?: number) => {
     const desde = `${anio}-${String(mes + 1).padStart(2, '0')}-01`;
     const hastaRaw = new Date(anio, mes + 1, 0);
     const hasta = hastaRaw.toISOString().split('T')[0];
-    api.getDiasSinClases({ desde, hasta }).then(setRegistros).catch(() => {});
+    api.getDiasSinClases({ desde, hasta }, p ?? page).then(r => { setRegistros(r.data); setTotalPages(r.totalPages); }).catch(() => {});
   };
 
-  useEffect(() => { load(); }, [mes, anio]);
+  useEffect(() => { load(); }, [mes, anio, page]);
 
   const guardar = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -100,6 +102,7 @@ export function CalendarioPage() {
         { key: 'descripcion', label: 'Descripción', render: (v: string) => v ?? '-' },
         { key: 'curso', label: 'Curso', render: (_: any, r: any) => r.curso ? `${r.curso.anio}°${r.curso.division} - ${r.curso.turno}` : 'Todos' },
       ]} data={registros} onDelete={r => setDeleteTarget(r)} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={p => { setPage(p); }} />
 
       {showForm && <FormModal title="Agregar día sin clases" onClose={() => setShowForm(false)}>
         <form onSubmit={guardar}>

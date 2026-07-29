@@ -12,6 +12,10 @@ export class InscripcionService {
     private cursosRepository: CursosRepository,
   ) {}
 
+  findAll(page = 1, limit = 10) {
+    return this.inscripcionRepository.findAll(page, limit);
+  }
+
   async inscribir(dto: CrearInscripcionDto) {
     const alumno = await this.alumnosRepository.findById(dto.alumnoId);
     if (!alumno) throw new NotFoundException('Alumno no encontrado');
