@@ -7,7 +7,7 @@ import { ActualizarMateriaDto } from './dto/actualizar-materia.dto';
 export class MateriasService {
   constructor(private materiasRepository: MateriasRepository) {}
 
-  async findAll() { return this.materiasRepository.findAll(); }
+  async findAll(page = 1, limit = 10) { return this.materiasRepository.findAll(page, limit); }
 
   async findById(id: number) {
     const m = await this.materiasRepository.findById(id);

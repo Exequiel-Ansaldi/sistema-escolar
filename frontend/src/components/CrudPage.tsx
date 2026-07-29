@@ -1,13 +1,14 @@
 import { useMemo, type ReactNode } from 'react';
-import { DataTable, FormModal, Input, Button, ConfirmModal } from '../components/ui';
+import { DataTable, FormModal, Input, Button, ConfirmModal, Pagination } from '../components/ui';
 import { useCrud } from '../hooks/useCrud';
 import { Plus } from 'lucide-react';
+import type { PaginatedResult } from '../services/api';
 
 interface CrudPageProps {
   title: string;
   columns: { key: string; label: string; render?: (value: any, row: any) => any }[];
   fields: { key: string; label: string; type?: string; required?: boolean; options?: { value: string | number; label: string }[]; min?: number; max?: string }[];
-  fetchFn: () => Promise<any[]>;
+  fetchFn: (page: number, limit: number) => Promise<PaginatedResult<any>>;
   createFn: (body: any) => Promise<any>;
   updateFn: (id: number, body: any) => Promise<any>;
   deleteFn: (id: number) => Promise<any>;
@@ -15,7 +16,7 @@ interface CrudPageProps {
 }
 
 export function CrudPage({ title, columns, fields, fetchFn, createFn, updateFn, deleteFn, renderFilters }: CrudPageProps) {
-  const { data, loading, editing, showForm, pendingDelete, deleting, openCreate, openEdit, closeForm, save, confirmRemove, cancelDelete, executeDelete, error } = useCrud(fetchFn, createFn, updateFn, deleteFn);
+  const { data, loading, editing, showForm, pendingDelete, deleting, openCreate, openEdit, closeForm, save, confirmRemove, cancelDelete, executeDelete, error, page, totalPages, changePage } = useCrud(fetchFn, createFn, updateFn, deleteFn);
 
   const { filtered, filters } = useMemo(() => {
     if (renderFilters) return renderFilters(data);
@@ -33,6 +34,7 @@ export function CrudPage({ title, columns, fields, fetchFn, createFn, updateFn, 
       </div>
       {filters && <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5"><div className="flex flex-wrap items-center gap-3">{filters}</div></div>}
       <DataTable columns={columns} data={filtered} loading={loading} onEdit={openEdit} onDelete={confirmRemove} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={changePage} />
       {showForm && (
         <FormModal title={editing?.id ? `Editar ${title}` : `Nuevo ${title}`} onClose={closeForm}>
           <form onSubmit={e => { e.preventDefault(); const fd = new FormData(e.currentTarget); const body: any = {}; fields.forEach(f => { const v = fd.get(f.key); if (f.type === 'number') body[f.key] = v ? Number(v) : undefined; else body[f.key] = v || undefined; }); save(body); }}>

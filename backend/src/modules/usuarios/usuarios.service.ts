@@ -8,8 +8,8 @@ import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
 export class UsuariosService {
   constructor(private usuariosRepository: UsuariosRepository) {}
 
-  async findAll() {
-    return this.usuariosRepository.findAll();
+  async findAll(page = 1, limit = 10) {
+    return this.usuariosRepository.findAll(page, limit);
   }
 
   async findById(id: number) {

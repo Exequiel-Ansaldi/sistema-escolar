@@ -7,8 +7,8 @@ import { ActualizarCursoDto } from './dto/actualizar-curso.dto';
 export class CursosService {
   constructor(private cursosRepository: CursosRepository) {}
 
-  async findAll() {
-    return this.cursosRepository.findAll();
+  async findAll(page = 1, limit = 10) {
+    return this.cursosRepository.findAll(page, limit);
   }
 
   async findById(id: number) {

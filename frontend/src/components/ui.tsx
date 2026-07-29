@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { X, CheckCircle, AlertCircle, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Pencil, Trash2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Column { key: string; label: string; render?: (value: any, row: any) => ReactNode; }
 
@@ -114,6 +114,30 @@ export function Button({ children, variant = 'primary', ...props }: { children: 
     ghost: 'border border-gray-300 hover:bg-gray-50 text-gray-700 bg-white',
   };
   return <button {...props} className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 inline-flex items-center gap-2 ${styles[variant]} disabled:opacity-50 disabled:cursor-not-allowed ${props.className || ''}`}>{children}</button>;
+}
+
+export function Pagination({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (p: number) => void }) {
+  if (totalPages <= 1) return null;
+  const pages: (number | '...')[] = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (page > 3) pages.push('...');
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i);
+    if (page < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
+  }
+  return (
+    <div className="flex items-center justify-center gap-1 pt-4">
+      <button disabled={page <= 1} onClick={() => onPageChange(page - 1)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"><ChevronLeft size={18} /></button>
+      {pages.map((p, i) =>
+        p === '...' ? <span key={`e${i}`} className="px-2 text-gray-400 text-sm">...</span> :
+          <button key={p} onClick={() => onPageChange(p)} className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-all ${p === page ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'}`}>{p}</button>
+      )}
+      <button disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"><ChevronRight size={18} /></button>
+    </div>
+  );
 }
 
 export function Toast({ message, type = 'success', onClose }: { message: string; type?: 'success' | 'error'; onClose: () => void }) {

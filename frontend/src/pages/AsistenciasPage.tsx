@@ -20,7 +20,7 @@ export function AsistenciasPage() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    api.getAlumnos().then(setAlumnos);
+    api.getAllAlumnos().then(setAlumnos);
   }, []);
 
   useEffect(() => {

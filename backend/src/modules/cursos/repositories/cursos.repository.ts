@@ -2,13 +2,23 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CrearCursoDto } from '../dto/crear-curso.dto';
 import { ActualizarCursoDto } from '../dto/actualizar-curso.dto';
+import { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class CursosRepository {
   constructor(private prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.curso.findMany({ orderBy: [{ anio: 'asc' }, { division: 'asc' }] });
+  async findAll(page = 1, limit = 10): Promise<PaginatedResult<any>> {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.prisma.curso.findMany({
+        skip,
+        take: limit,
+        orderBy: [{ anio: 'asc' }, { division: 'asc' }],
+      }),
+      this.prisma.curso.count(),
+    ]);
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   findById(id: number) {

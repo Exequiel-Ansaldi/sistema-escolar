@@ -44,7 +44,7 @@ export function ModulosPage() {
   const [mesActual, setMesActual] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
 
   useEffect(() => {
-    Promise.all([api.getCursos(), api.getDocentes(), api.getMaterias()]).then(([c, d, m]) => {
+    Promise.all([api.getAllCursos(), api.getAllDocentes(), api.getAllMaterias()]).then(([c, d, m]) => {
       setCursos(c.filter((x: any) => x.estado === 'activo'));
       setDocentes(d.filter((x: any) => x.estado === 'activo'));
       setMaterias(m);

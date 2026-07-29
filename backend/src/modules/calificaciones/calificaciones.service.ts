@@ -30,9 +30,9 @@ export class CalificacionesService {
 
   async promedioPorMateria(alumnoId: number) {
     const data = await this.calificacionesRepository.promedioPorMateria(alumnoId);
-    const materias = await this.materiasRepository.findAll();
+    const materias = await this.materiasRepository.findAll(1, 9999);
     return data.map((d: any) => ({
-      materia: materias.find((m: any) => m.id === d.materiaId),
+      materia: materias.data.find((m: any) => m.id === d.materiaId),
       promedio: d._avg.nota,
       count: d._count,
     }));

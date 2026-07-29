@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe, Query } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
@@ -8,8 +8,8 @@ export class UsuariosController {
   constructor(private usuariosService: UsuariosService) {}
 
   @Get()
-  findAll() {
-    return this.usuariosService.findAll();
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.usuariosService.findAll(Number(page) || 1, Number(limit) || 10);
   }
 
   @Get(':id')

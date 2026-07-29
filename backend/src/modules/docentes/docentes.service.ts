@@ -14,7 +14,7 @@ export class DocentesService {
     private prisma: PrismaService,
   ) {}
 
-  async findAll() { return this.docentesRepository.findAll(); }
+  async findAll(page = 1, limit = 10) { return this.docentesRepository.findAll(page, limit); }
 
   async findById(id: number) {
     const d = await this.docentesRepository.findById(id);

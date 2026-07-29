@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe, Query } from '@nestjs/common';
 import { CursosService } from './cursos.service';
 import { CrearCursoDto } from './dto/crear-curso.dto';
 import { ActualizarCursoDto } from './dto/actualizar-curso.dto';
@@ -8,7 +8,9 @@ export class CursosController {
   constructor(private cursosService: CursosService) {}
 
   @Get()
-  findAll() { return this.cursosService.findAll(); }
+  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.cursosService.findAll(+(page ?? 1), +(limit ?? 10));
+  }
 
   @Get(':id')
   findById(@Param('id', ParseIntPipe) id: number) { return this.cursosService.findById(id); }

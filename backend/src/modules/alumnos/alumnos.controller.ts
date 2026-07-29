@@ -8,9 +8,15 @@ export class AlumnosController {
   constructor(private alumnosService: AlumnosService) {}
 
   @Get()
-  findAll(@Query('search') search?: string) {
+  findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    const p = page ? parseInt(page, 10) : 1;
+    const l = limit ? parseInt(limit, 10) : 10;
     if (search) return this.alumnosService.search(search);
-    return this.alumnosService.findAll();
+    return this.alumnosService.findAll(p, l);
   }
 
   @Get(':id')

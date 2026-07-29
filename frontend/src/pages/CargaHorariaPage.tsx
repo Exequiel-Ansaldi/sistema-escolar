@@ -18,7 +18,7 @@ export function CargaHorariaPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    Promise.all([api.getCursos(), api.getMaterias()]).then(([c, m]) => {
+    Promise.all([api.getAllCursos(), api.getAllMaterias()]).then(([c, m]) => {
       setCursos(c.filter((x: any) => x.estado === 'activo'));
       setMaterias(m);
     });

@@ -22,7 +22,7 @@ export function CalendarioPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    api.getCursos().then(c => setCursos(c.filter((x: any) => x.estado === 'activo')));
+    api.getAllCursos().then(c => setCursos(c.filter((x: any) => x.estado === 'activo')));
   }, []);
 
   const load = () => {

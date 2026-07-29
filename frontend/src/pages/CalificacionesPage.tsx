@@ -15,8 +15,8 @@ export function CalificacionesPage() {
   const [nombreFilter, setNombreFilter] = useState('');
 
   useEffect(() => {
-    api.getAlumnos().then(a => setAlumnos(a.filter((x: any) => x.estado === 'activo')));
-    api.getMaterias().then(setMaterias);
+    api.getAllAlumnos().then(a => setAlumnos(a.filter((x: any) => x.estado === 'activo')));
+    api.getAllMaterias().then(setMaterias);
   }, []);
 
   const [promTrimestre, setPromTrimestre] = useState<any[]>([]);

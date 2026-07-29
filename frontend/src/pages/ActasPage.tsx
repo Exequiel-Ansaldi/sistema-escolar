@@ -15,7 +15,7 @@ export function ActasPage() {
   const [dniFilter, setDniFilter] = useState('');
   const [nombreFilter, setNombreFilter] = useState('');
 
-  useEffect(() => { api.getAlumnos().then(a => setAlumnos(a.filter((x: any) => x.estado === 'activo'))); }, []);
+  useEffect(() => { api.getAllAlumnos().then(a => setAlumnos(a.filter((x: any) => x.estado === 'activo'))); }, []);
 
   const load = useCallback(async () => {
     if (!alumnoId) return;

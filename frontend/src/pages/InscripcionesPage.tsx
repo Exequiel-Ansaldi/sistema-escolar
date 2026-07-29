@@ -19,7 +19,7 @@ export function InscripcionesPage() {
   const [turnoFilter, setTurnoFilter] = useState('');
 
   const load = useCallback(async () => {
-    const [a, c] = await Promise.all([api.getAlumnos(), api.getCursos()]);
+    const [a, c] = await Promise.all([api.getAllAlumnos(), api.getAllCursos()]);
     setAlumnos(a.filter((x: any) => x.estado === 'activo'));
     setCursos(c.filter((x: any) => x.estado === 'activo'));
     const ins: any[] = [];

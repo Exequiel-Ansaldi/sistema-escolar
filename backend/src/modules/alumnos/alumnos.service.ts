@@ -7,8 +7,8 @@ import { ActualizarAlumnoDto } from './dto/actualizar-alumno.dto';
 export class AlumnosService {
   constructor(private alumnosRepository: AlumnosRepository) {}
 
-  async findAll() {
-    return this.alumnosRepository.findAll();
+  async findAll(page = 1, limit = 10) {
+    return this.alumnosRepository.findAll(page, limit);
   }
 
   async findById(id: number) {

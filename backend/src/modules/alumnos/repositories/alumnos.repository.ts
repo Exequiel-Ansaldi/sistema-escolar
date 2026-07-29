@@ -2,16 +2,24 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CrearAlumnoDto } from '../dto/crear-alumno.dto';
 import { ActualizarAlumnoDto } from '../dto/actualizar-alumno.dto';
+import { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class AlumnosRepository {
   constructor(private prisma: PrismaService) {}
 
-  findAll() {
-    return this.prisma.alumno.findMany({
-      orderBy: { apellido: 'asc' },
-      include: { inscripciones: { include: { curso: true } } },
-    });
+  async findAll(page = 1, limit = 10): Promise<PaginatedResult<any>> {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.prisma.alumno.findMany({
+        skip,
+        take: limit,
+        orderBy: { apellido: 'asc' },
+        include: { inscripciones: { include: { curso: true } } },
+      }),
+      this.prisma.alumno.count(),
+    ]);
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   findById(id: number) {

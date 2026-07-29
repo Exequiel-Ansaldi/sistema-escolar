@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe, Query } from '@nestjs/common';
 import { MateriasService } from './materias.service';
 import { CrearMateriaDto } from './dto/crear-materia.dto';
 import { ActualizarMateriaDto } from './dto/actualizar-materia.dto';
@@ -7,7 +7,9 @@ import { ActualizarMateriaDto } from './dto/actualizar-materia.dto';
 export class MateriasController {
   constructor(private materiasService: MateriasService) {}
 
-  @Get() findAll() { return this.materiasService.findAll(); }
+  @Get() findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.materiasService.findAll(+(page ?? 1), +(limit ?? 10));
+  }
   @Get(':id') findById(@Param('id', ParseIntPipe) id: number) { return this.materiasService.findById(id); }
   @Post() create(@Body() dto: CrearMateriaDto) { return this.materiasService.create(dto); }
   @Put(':id') update(@Param('id', ParseIntPipe) id: number, @Body() dto: ActualizarMateriaDto) {

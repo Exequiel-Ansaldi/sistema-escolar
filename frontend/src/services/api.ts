@@ -1,3 +1,11 @@
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 const BASE = '/api';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
@@ -13,25 +21,29 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 export const api = {
   login: (body: { nombreUsuario: string; contrasena: string }) => request<{ accessToken: string; usuario: any }>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
 
-  getAlumnos: (search?: string) => request<any[]>(`/alumnos${search ? `?search=${search}` : ''}`),
+  getAlumnos: (page = 1, limit = 10) => request<PaginatedResult<any>>(`/alumnos?page=${page}&limit=${limit}`),
+  getAllAlumnos: () => request<any[]>('/alumnos?limit=9999'),
   getAlumno: (id: number) => request<any>(`/alumnos/${id}`),
   createAlumno: (body: any) => request<any>('/alumnos', { method: 'POST', body: JSON.stringify(body) }),
   updateAlumno: (id: number, body: any) => request<any>(`/alumnos/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteAlumno: (id: number) => request<any>(`/alumnos/${id}`, { method: 'DELETE' }),
 
-  getCursos: () => request<any[]>('/cursos'),
+  getCursos: (page = 1, limit = 10) => request<PaginatedResult<any>>(`/cursos?page=${page}&limit=${limit}`),
+  getAllCursos: () => request<any[]>('/cursos?limit=9999'),
   getCurso: (id: number) => request<any>(`/cursos/${id}`),
   createCurso: (body: any) => request<any>('/cursos', { method: 'POST', body: JSON.stringify(body) }),
   updateCurso: (id: number, body: any) => request<any>(`/cursos/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteCurso: (id: number) => request<any>(`/cursos/${id}`, { method: 'DELETE' }),
 
-  getDocentes: () => request<any[]>('/docentes'),
+  getDocentes: (page = 1, limit = 10) => request<PaginatedResult<any>>(`/docentes?page=${page}&limit=${limit}`),
+  getAllDocentes: () => request<any[]>('/docentes?limit=9999'),
   getDocente: (id: number) => request<any>(`/docentes/${id}`),
   createDocente: (body: any) => request<any>('/docentes', { method: 'POST', body: JSON.stringify(body) }),
   updateDocente: (id: number, body: any) => request<any>(`/docentes/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteDocente: (id: number) => request<any>(`/docentes/${id}`, { method: 'DELETE' }),
 
-  getMaterias: () => request<any[]>('/materias'),
+  getMaterias: (page = 1, limit = 10) => request<PaginatedResult<any>>(`/materias?page=${page}&limit=${limit}`),
+  getAllMaterias: () => request<any[]>('/materias?limit=9999'),
   createMateria: (body: any) => request<any>('/materias', { method: 'POST', body: JSON.stringify(body) }),
   updateMateria: (id: number, body: any) => request<any>(`/materias/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteMateria: (id: number) => request<any>(`/materias/${id}`, { method: 'DELETE' }),

@@ -16,7 +16,7 @@ export function LicenciasPage() {
   const [dniFilter, setDniFilter] = useState('');
   const [nombreFilter, setNombreFilter] = useState('');
 
-  useEffect(() => { api.getDocentes().then(d => setDocentes(d.filter((x: any) => x.estado === 'activo'))); }, []);
+  useEffect(() => { api.getAllDocentes().then(d => setDocentes(d.filter((x: any) => x.estado === 'activo'))); }, []);
 
   const load = useCallback(async () => {
     if (!docenteId) return;

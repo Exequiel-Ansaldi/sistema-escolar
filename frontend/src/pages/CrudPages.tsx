@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { CrudPage } from '../components/CrudPage';
-import { api } from '../services/api';
+import { api, type PaginatedResult } from '../services/api';
 
-const soloActivos = <T extends { estado?: string }>(fn: () => Promise<T[]>) =>
-  async () => (await fn()).filter(x => x.estado !== 'inactivo');
+const soloActivos = <T extends { estado?: string }>(fn: (page: number, limit: number) => Promise<PaginatedResult<T>>) =>
+  async (page: number, limit: number) => {
+    const r = await fn(page, limit);
+    return { ...r, data: r.data.filter(x => x.estado !== 'inactivo') };
+  };
 
 export function AlumnosPage() {
   const [dniFilter, setDniFilter] = useState('');
