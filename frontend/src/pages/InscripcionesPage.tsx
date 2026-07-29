@@ -14,6 +14,9 @@ export function InscripcionesPage() {
   const [pendingDelete, setPendingDelete] = useState<{ alumnoId: number; cursoId: number; alumno: string } | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [anioFilter, setAnioFilter] = useState('');
+  const [divisionFilter, setDivisionFilter] = useState('');
+  const [turnoFilter, setTurnoFilter] = useState('');
 
   useEffect(() => {
     api.getAllAlumnos().then(a => setAlumnos(a.filter((x: any) => x.estado === 'activo')));
@@ -25,6 +28,19 @@ export function InscripcionesPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const aniosDisponibles = [...new Set(inscripciones.map(i => i.curso?.anio).filter(Boolean))].sort();
+  const divisionesDisponibles = [...new Set(inscripciones
+    .filter(i => !anioFilter || i.curso?.anio === Number(anioFilter))
+    .map(i => i.curso?.division).filter(Boolean))].sort();
+  const turnosDisponibles = [...new Set(inscripciones
+    .filter(i => (!anioFilter || i.curso?.anio === Number(anioFilter)) && (!divisionFilter || i.curso?.division === divisionFilter))
+    .map(i => i.curso?.turno).filter(Boolean))].sort();
+  const filtered = inscripciones.filter(i =>
+    (!anioFilter || i.curso?.anio === Number(anioFilter)) &&
+    (!divisionFilter || i.curso?.division === divisionFilter) &&
+    (!turnoFilter || i.curso?.turno === turnoFilter)
+  );
 
   const inscribir = async () => {
     if (!alumnoId || !cursoId) { setToast({ message: 'Seleccioná un alumno y un curso', type: 'error' }); return; }
@@ -50,15 +66,32 @@ export function InscripcionesPage() {
         <Button onClick={() => { setAlumnoId(''); setCursoId(''); setShowForm(true); }} variant="primary"><Users size={16} /> Inscribir</Button>
       </div>
 
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={anioFilter} onChange={e => setAnioFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+            <option value="">Todos los años</option>
+            {aniosDisponibles.map(a => <option key={a} value={a}>{a}°</option>)}
+          </select>
+          <select value={divisionFilter} onChange={e => setDivisionFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+            <option value="">Todas las divisiones</option>
+            {divisionesDisponibles.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <select value={turnoFilter} onChange={e => setTurnoFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+            <option value="">Todos los turnos</option>
+            {turnosDisponibles.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+      </div>
+
       <div className="overflow-hidden bg-white rounded-xl border border-slate-200 shadow-sm">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="font-semibold text-slate-700 text-sm">Inscripciones Registradas</h2>
         </div>
-        {inscripciones.length === 0 ? (
+        {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-slate-400">
             <BookOpen size={40} className="mb-3 text-slate-300" />
-            <p className="text-sm font-medium">No hay inscripciones</p>
-            <p className="text-xs mt-1">Hacé clic en "Inscribir" para registrar un alumno</p>
+            <p className="text-sm font-medium">{inscripciones.length === 0 ? 'No hay inscripciones' : 'No hay inscripciones que coincidan con los filtros'}</p>
+            <p className="text-xs mt-1">{inscripciones.length === 0 ? 'Hacé clic en "Inscribir" para registrar un alumno' : 'Probá cambiar los filtros'}</p>
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -73,7 +106,7 @@ export function InscripcionesPage() {
               </tr>
             </thead>
             <tbody>
-              {inscripciones.map((i, idx) => (
+              {filtered.map((i, idx) => (
                 <tr key={`${i.alumnoId}-${i.cursoId}`} className={`border-b border-slate-100 transition-colors hover:bg-blue-50/40 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
                   <td className="px-5 py-3 text-slate-700 font-medium">{i.alumno?.apellido}, {i.alumno?.nombre}</td>
                   <td className="px-5 py-3 text-slate-600">{i.curso?.anio}°{i.curso?.division} - {i.curso?.turno}</td>
