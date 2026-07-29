@@ -7,8 +7,9 @@ export function ActasPage() {
   const [actas, setActas] = useState<any[]>([]);
   const [acuerdos, setAcuerdos] = useState<any[]>([]);
   const [seguimientos, setSeguimientos] = useState<any[]>([]);
+  const [tutores, setTutores] = useState<any[]>([]);
   const [alumnoId, setAlumnoId] = useState('');
-  const [tab, setTab] = useState<'actas' | 'acuerdos' | 'seguimientos'>('actas');
+  const [tab, setTab] = useState<'actas' | 'acuerdos' | 'seguimientos' | 'tutores'>('actas');
   const [showForm, setShowForm] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [dniFilter, setDniFilter] = useState('');
@@ -19,8 +20,8 @@ export function ActasPage() {
   const load = useCallback(async () => {
     if (!alumnoId) return;
     const id = Number(alumnoId);
-    const [ac, ag, seg] = await Promise.all([api.getActas(id), api.getAcuerdos(id), api.getSeguimientos(id)]);
-    setActas(ac); setAcuerdos(ag); setSeguimientos(seg);
+    const [ac, ag, seg, tut] = await Promise.all([api.getActas(id), api.getAcuerdos(id), api.getSeguimientos(id), api.getTutores(id)]);
+    setActas(ac); setAcuerdos(ag); setSeguimientos(seg); setTutores(tut);
   }, [alumnoId]);
 
   useEffect(() => { load(); }, [load]);
@@ -28,7 +29,8 @@ export function ActasPage() {
   const createEntry = async (body: any) => {
     if (tab === 'actas') await api.createActa(body);
     else if (tab === 'acuerdos') await api.createAcuerdo(body);
-    else await api.createSeguimiento(body);
+    else if (tab === 'seguimientos') await api.createSeguimiento(body);
+    else await api.createTutor({ alumnoId: Number(alumnoId), ...body });
     setToast({ message: `${tab.slice(0, -1)} creado con éxito`, type: 'success' }); setShowForm(false); load();
   };
 
@@ -36,6 +38,7 @@ export function ActasPage() {
     { key: 'actas' as const, label: 'Actas' },
     { key: 'acuerdos' as const, label: 'Acuerdos' },
     { key: 'seguimientos' as const, label: 'Seguimientos' },
+    { key: 'tutores' as const, label: 'Tutores' },
   ];
 
   const alumnosFiltrados = alumnos.filter(a => {
@@ -48,7 +51,7 @@ export function ActasPage() {
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Actas & Acuerdos</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Actas, Acuerdos & Tutores</h1>
           <p className="text-slate-500 text-sm mt-1">Documentación académica por alumno</p>
         </div>
       </div>
@@ -85,12 +88,17 @@ export function ActasPage() {
         { key: 'estado', label: 'Estado' }, { key: 'fecha', label: 'Fecha', render: (v: string) => new Date(v).toLocaleDateString() },
       ]} data={seguimientos} />}
 
+      {tab === 'tutores' && <DataTable columns={[
+        { key: 'nombre', label: 'Nombre' }, { key: 'apellido', label: 'Apellido' }, { key: 'dni', label: 'DNI' },
+      ]} data={tutores} onDelete={async (row) => { await api.deleteTutor(row.id); setToast({ message: 'Tutor eliminado', type: 'success' }); load(); }} />}
+
       {showForm && <FormModal title={`Nuevo ${tab.slice(0, -1)}`} onClose={() => setShowForm(false)}>
         <form onSubmit={e => { e.preventDefault(); createEntry(Object.fromEntries(new FormData(e.currentTarget))); }}>
           {tab === 'actas' && <><Input label="Número" name="numero" required /><Input label="Tipo" name="tipo" required /></>}
           {tab === 'acuerdos' && <Select label="Tipo" name="tipo"><option value="docente">Docente</option><option value="alumno">Alumno</option><option value="familia">Familia</option></Select>}
           {tab === 'seguimientos' && <><Input label="Título" name="titulo" required /><Select label="Tipo" name="tipo"><option value="academico">Académico</option><option value="conductual">Conductual</option></Select></>}
-          <Input label="Descripción" name="descripcion" required />
+          {tab === 'tutores' && <><Input label="Nombre" name="nombre" required /><Input label="Apellido" name="apellido" required /><Input label="DNI" name="dni" required /></>}
+          {tab !== 'tutores' && <Input label="Descripción" name="descripcion" required />}
           <Button type="submit" variant="primary">Guardar</Button>
         </form>
       </FormModal>}
