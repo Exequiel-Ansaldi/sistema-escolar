@@ -85,7 +85,7 @@ export function ActasPage() {
       <div className="border-b border-slate-200 flex items-center gap-1">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-5 py-3 text-sm font-medium transition-all border-b-2 -mb-[1px] ${tab === t.key ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{t.label}</button>
+            className={`px-5 py-3 text-sm font-medium transition-all border-b-2 -mb-px ${tab === t.key ? 'border-blue-500 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{t.label}</button>
         ))}
         <button onClick={() => setShowForm(true)} className="ml-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors mb-2">+ Nuevo</button>
       </div>

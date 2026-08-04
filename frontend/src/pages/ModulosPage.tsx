@@ -129,7 +129,7 @@ export function ModulosPage() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Button onClick={prevMonth} variant="secondary">&lt;</Button>
-            <span className="font-semibold text-slate-700 min-w-[140px] text-center">{MONTHS[m - 1]} {y}</span>
+            <span className="font-semibold text-slate-700 min-w-35 text-center">{MONTHS[m - 1]} {y}</span>
             <Button onClick={nextMonth} variant="secondary">&gt;</Button>
           </div>
           <span className="text-slate-300">|</span>
