@@ -1,32 +1,59 @@
-# React + TypeScript + Vite
+# Frontend — Sistema de Gestión Escolar (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Interfaz web del sistema escolar. Documentación completa del proyecto en el vault de Obsidian (`Proyecto_para_luci/`).
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+| Capa | Tecnología |
+|------|-----------|
+| Framework | React 19 |
+| Build | Vite 8 |
+| Estilos | TailwindCSS 4 |
+| Ruteo | React Router DOM 7 |
+| Gráficos | Recharts |
+| Iconos | Lucide React |
+| Linter | oxlint |
 
-## React Compiler
+## Scripts
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Comando | Descripción |
+|---------|-------------|
+| `npm run dev` | Dev server (puerto 5173, proxy `/api` → localhost:3000) |
+| `npm run build` | `tsc -b && vite build` |
+| `npm run lint` | oxlint |
+| `npm run preview` | Sirve el build de producción |
 
-## Expanding the Oxlint configuration
+## Estructura
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```
+src/
+├── main.tsx / App.tsx          # Entry + rutas (ProtectedRoute envuelve todo excepto /login)
+├── index.css                   # Tailwind + animaciones
+├── components/                 # ui.tsx (DataTable, Modals, Pagination), CrudPage, Layout
+├── pages/                      # Dashboard, Login, CrudPages, Actas, Asistencias, ...
+├── services/api.ts             # Cliente HTTP centralizado (base /api, token JWT automático)
+├── hooks/useCrud.ts            # Estado genérico para CRUD + paginación
+├── context/AuthContext.tsx     # Login/logout, token en localStorage
+└── types/index.ts              # Tipos compartidos con el backend
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Páginas
+
+| Ruta | Página |
+|------|--------|
+| `/login` | Login |
+| `/` | Dashboard |
+| `/alumnos` `/cursos` `/docentes` `/materias` | CrudPages (ABM genérico) |
+| `/inscripciones` | InscripcionesPage |
+| `/asistencias` | AsistenciasPage |
+| `/calificaciones` | CalificacionesPage |
+| `/actas` | ActasPage (tabs: actas, acuerdos, seguimientos, tutores) |
+| `/licencias` | LicenciasPage |
+| `/modulos` | ModulosPage |
+| `/carga-horaria` | CargaHorariaPage |
+| `/calendario` | CalendarioPage |
+
+## Deploy
+
+- `vercel.json`: rewrites `/api/*` → Render y SPA catch-all.
+- `vite.config.ts`: proxy `/api` → `localhost:3000` en dev.

@@ -10,6 +10,10 @@ export class CrearLicenciaDto {
   @IsDateString()
   fechaFin: string;
 
+  @IsOptional()
+  @IsString()
+  codigo?: string;
+
   @IsString()
   motivo: string;
 

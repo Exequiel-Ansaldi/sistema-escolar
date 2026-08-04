@@ -1,4 +1,12 @@
-import { IsInt, IsNumber, Min, Max, IsDateString, IsOptional, IsString } from 'class-validator';
+import {
+  IsInt,
+  IsNumber,
+  Min,
+  Max,
+  IsDateString,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CrearCalificacionDto {
   @IsInt()

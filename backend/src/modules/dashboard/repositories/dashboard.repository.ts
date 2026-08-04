@@ -5,16 +5,28 @@ import { PrismaService } from '../../../prisma/prisma.service';
 export class DashboardRepository {
   constructor(private prisma: PrismaService) {}
 
-  countAlumnosActivos() { return this.prisma.alumno.count({ where: { estado: 'activo' } }); }
-  countDocentesActivos() { return this.prisma.docente.count({ where: { estado: 'activo' } }); }
-  countCursosActivos() { return this.prisma.curso.count({ where: { estado: 'activo' } }); }
-  countUsuariosActivos() { return this.prisma.usuario.count({ where: { activo: true } }); }
-
-  findAsistenciasByFecha(start: Date, end: Date) {
-    return this.prisma.asistencia.findMany({ where: { fecha: { gte: start, lt: end } } });
+  countAlumnosActivos() {
+    return this.prisma.alumno.count({ where: { estado: 'activo' } });
+  }
+  countDocentesActivos() {
+    return this.prisma.docente.count({ where: { estado: 'activo' } });
+  }
+  countCursosActivos() {
+    return this.prisma.curso.count({ where: { estado: 'activo' } });
+  }
+  countUsuariosActivos() {
+    return this.prisma.usuario.count({ where: { activo: true } });
   }
 
-  countInscripcionesActivas() { return this.prisma.inscripcion.count({ where: { estado: 'activo' } }); }
+  findAsistenciasByFecha(start: Date, end: Date) {
+    return this.prisma.asistencia.findMany({
+      where: { fecha: { gte: start, lt: end } },
+    });
+  }
+
+  countInscripcionesActivas() {
+    return this.prisma.inscripcion.count({ where: { estado: 'activo' } });
+  }
 
   aggregateModulos() {
     return this.prisma.moduloSemanal.aggregate({
@@ -53,7 +65,9 @@ export class DashboardRepository {
     return this.prisma.asistencia.findMany({
       take: limite,
       orderBy: { fecha: 'desc' },
-      include: { alumno: { select: { nombre: true, apellido: true, dni: true } } },
+      include: {
+        alumno: { select: { nombre: true, apellido: true, dni: true } },
+      },
     });
   }
 

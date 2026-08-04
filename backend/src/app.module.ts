@@ -13,6 +13,9 @@ import { MateriasModule } from './modules/materias/materias.module';
 import { AsistenciaModule } from './modules/asistencia/asistencia.module';
 import { CalificacionesModule } from './modules/calificaciones/calificaciones.module';
 import { ActasModule } from './modules/actas/actas.module';
+import { AcuerdosModule } from './modules/acuerdos/acuerdos.module';
+import { SeguimientosModule } from './modules/seguimientos/seguimientos.module';
+import { TutoresModule } from './modules/tutores/tutores.module';
 import { LicenciasModule } from './modules/licencias/licencias.module';
 import { ModulosSemanaModule } from './modules/modulos-semana/modulos-semana.module';
 import { DiasSinClasesModule } from './modules/dias-sin-clases/dias-sin-clases.module';
@@ -37,15 +40,16 @@ import appConfig from './config/app.config';
     AsistenciaModule,
     CalificacionesModule,
     ActasModule,
+    AcuerdosModule,
+    SeguimientosModule,
+    TutoresModule,
     LicenciasModule,
     ModulosSemanaModule,
     DiasSinClasesModule,
     DashboardModule,
     ReportesModule,
   ],
-  providers: [
-    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
-  ],
+  providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

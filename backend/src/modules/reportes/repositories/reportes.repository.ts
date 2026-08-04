@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ReportesRepository {
@@ -9,8 +10,14 @@ export class ReportesRepository {
     return this.prisma.alumno.findUnique({
       where: { id: alumnoId },
       include: {
-        calificaciones: { include: { materia: true }, orderBy: [{ trimestre: 'asc' }, { materia: { nombre: 'asc' } }] },
-        inscripciones: { include: { curso: true }, where: { estado: 'activo' } },
+        calificaciones: {
+          include: { materia: true },
+          orderBy: [{ trimestre: 'asc' }, { materia: { nombre: 'asc' } }],
+        },
+        inscripciones: {
+          include: { curso: true },
+          where: { estado: 'activo' },
+        },
       },
     });
   }
@@ -19,12 +26,15 @@ export class ReportesRepository {
     return this.prisma.alumno.findUnique({
       where: { id: alumnoId },
       include: {
-        inscripciones: { include: { curso: true }, where: { estado: 'activo' } },
+        inscripciones: {
+          include: { curso: true },
+          where: { estado: 'activo' },
+        },
       },
     });
   }
 
-  findAsistencias(alumnoId: number, where?: any) {
+  findAsistencias(alumnoId: number, where?: Prisma.AsistenciaWhereInput) {
     return this.prisma.asistencia.findMany({
       where: { alumnoId, ...where },
       orderBy: { fecha: 'desc' },
@@ -36,7 +46,9 @@ export class ReportesRepository {
       where: { id: cursoId },
       include: {
         inscripciones: {
-          include: { alumno: { select: { nombre: true, apellido: true, dni: true } } },
+          include: {
+            alumno: { select: { nombre: true, apellido: true, dni: true } },
+          },
           where: { estado: 'activo' },
         },
         materias: {

@@ -24,23 +24,25 @@ export function InscripcionesPage() {
   }, []);
 
   const load = (p?: number) => {
-    api.getInscripciones(p ?? page).then(r => { setInscripciones(r.data ?? []); setTotalPages(r.totalPages ?? 1); }).catch((err: any) => setToast({ message: err.message, type: 'error' }));
+    api.getInscripciones(p ?? page, 10, {
+      anio: anioFilter || undefined,
+      division: divisionFilter || undefined,
+      turno: turnoFilter || undefined,
+    }).then(r => { setInscripciones(r.data ?? []); setTotalPages(r.totalPages ?? 1); }).catch((err: any) => setToast({ message: err.message, type: 'error' }));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [page, anioFilter, divisionFilter, turnoFilter]);
 
-  const aniosDisponibles = [...new Set(inscripciones.map(i => i.curso?.anio).filter(Boolean))].sort();
-  const divisionesDisponibles = [...new Set(inscripciones
-    .filter(i => !anioFilter || i.curso?.anio === Number(anioFilter))
-    .map(i => i.curso?.division).filter(Boolean))].sort();
-  const turnosDisponibles = [...new Set(inscripciones
-    .filter(i => (!anioFilter || i.curso?.anio === Number(anioFilter)) && (!divisionFilter || i.curso?.division === divisionFilter))
-    .map(i => i.curso?.turno).filter(Boolean))].sort();
-  const filtered = inscripciones.filter(i =>
-    (!anioFilter || i.curso?.anio === Number(anioFilter)) &&
-    (!divisionFilter || i.curso?.division === divisionFilter) &&
-    (!turnoFilter || i.curso?.turno === turnoFilter)
-  );
+  const aniosDisponibles = [...new Set(cursos.map(c => c.anio).filter(Boolean))].sort();
+  const divisionesDisponibles = [...new Set(cursos
+    .filter(c => !anioFilter || c.anio === Number(anioFilter))
+    .map(c => c.division).filter(Boolean))].sort();
+  const turnosDisponibles = [...new Set(cursos
+    .filter(c => (!anioFilter || c.anio === Number(anioFilter)) && (!divisionFilter || c.division === divisionFilter))
+    .map(c => c.turno).filter(Boolean))].sort();
+  const hasFilters = Boolean(anioFilter || divisionFilter || turnoFilter);
+
+  const onFilterChange = (setter: (v: string) => void) => (v: string) => { setPage(1); setter(v); };
 
   const inscribir = async () => {
     if (!alumnoId || !cursoId) { setToast({ message: 'Seleccioná un alumno y un curso', type: 'error' }); return; }
@@ -68,15 +70,15 @@ export function InscripcionesPage() {
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <div className="flex flex-wrap items-center gap-3">
-          <select value={anioFilter} onChange={e => setAnioFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <select value={anioFilter} onChange={e => onFilterChange(setAnioFilter)(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Todos los años</option>
             {aniosDisponibles.map(a => <option key={a} value={a}>{a}°</option>)}
           </select>
-          <select value={divisionFilter} onChange={e => setDivisionFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <select value={divisionFilter} onChange={e => onFilterChange(setDivisionFilter)(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Todas las divisiones</option>
             {divisionesDisponibles.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
-          <select value={turnoFilter} onChange={e => setTurnoFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <select value={turnoFilter} onChange={e => onFilterChange(setTurnoFilter)(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Todos los turnos</option>
             {turnosDisponibles.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
@@ -87,11 +89,11 @@ export function InscripcionesPage() {
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="font-semibold text-slate-700 text-sm">Inscripciones Registradas</h2>
         </div>
-        {filtered.length === 0 ? (
+        {inscripciones.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-slate-400">
             <BookOpen size={40} className="mb-3 text-slate-300" />
-            <p className="text-sm font-medium">{inscripciones.length === 0 ? 'No hay inscripciones' : 'No hay inscripciones que coincidan con los filtros'}</p>
-            <p className="text-xs mt-1">{inscripciones.length === 0 ? 'Hacé clic en "Inscribir" para registrar un alumno' : 'Probá cambiar los filtros'}</p>
+            <p className="text-sm font-medium">{hasFilters ? 'No hay inscripciones que coincidan con los filtros' : 'No hay inscripciones'}</p>
+            <p className="text-xs mt-1">{hasFilters ? 'Probá cambiar los filtros' : 'Hacé clic en "Inscribir" para registrar un alumno'}</p>
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -106,7 +108,7 @@ export function InscripcionesPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((i, idx) => (
+              {inscripciones.map((i, idx) => (
                 <tr key={`${i.alumnoId}-${i.cursoId}`} className={`border-b border-slate-100 transition-colors hover:bg-blue-50/40 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
                   <td className="px-5 py-3 text-slate-700 font-medium">{i.alumno?.apellido}, {i.alumno?.nombre}</td>
                   <td className="px-5 py-3 text-slate-600">{i.curso?.anio}°{i.curso?.division} - {i.curso?.turno}</td>
@@ -122,7 +124,7 @@ export function InscripcionesPage() {
           </table>
         )}
       </div>
-      <Pagination page={page} totalPages={totalPages} onPageChange={p => { setPage(p); load(p); }} />
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       {showForm && <FormModal title="Nueva Inscripción" onClose={() => setShowForm(false)}>
         <div className="space-y-4">

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { AlumnosRepository } from './repositories/alumnos.repository';
 import { CrearAlumnoDto } from './dto/crear-alumno.dto';
 import { ActualizarAlumnoDto } from './dto/actualizar-alumno.dto';
@@ -19,7 +23,8 @@ export class AlumnosService {
 
   async create(dto: CrearAlumnoDto) {
     const existente = await this.alumnosRepository.findByDni(dto.dni);
-    if (existente) throw new ConflictException('Ya existe un alumno con ese DNI');
+    if (existente)
+      throw new ConflictException('Ya existe un alumno con ese DNI');
     return this.alumnosRepository.create(dto);
   }
 

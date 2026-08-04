@@ -1,20 +1,30 @@
-import { Controller, Get, Post, Delete, Param, Query, Body, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Query,
+  Body,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { DiasSinClasesService } from './dias-sin-clases.service';
 import { CrearDiaSinClasesDto } from './dto/crear-dia-sin-clases.dto';
+import { FiltrarDiasSinClasesDto } from './dto/filtrar-dias-sin-clases.dto';
 
 @Controller('dias-sin-clases')
 export class DiasSinClasesController {
   constructor(private service: DiasSinClasesService) {}
 
   @Get()
-  listar(
-    @Query('desde') desde?: string,
-    @Query('hasta') hasta?: string,
-    @Query('cursoId') cursoId?: string,
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-  ) {
-    return this.service.listar(desde, hasta, cursoId, +page, +limit);
+  listar(@Query() query: FiltrarDiasSinClasesDto) {
+    return this.service.listar(
+      query.desde,
+      query.hasta,
+      query.cursoId,
+      query.page ?? 1,
+      query.limit ?? 10,
+    );
   }
 
   @Post()

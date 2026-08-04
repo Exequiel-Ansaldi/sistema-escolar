@@ -1,4 +1,10 @@
-import { IsInt, IsDateString, IsString, IsOptional, IsBoolean } from 'class-validator';
+import {
+  IsInt,
+  IsDateString,
+  IsString,
+  IsOptional,
+  IsBoolean,
+} from 'class-validator';
 
 export class CrearAsistenciaDto {
   @IsInt()

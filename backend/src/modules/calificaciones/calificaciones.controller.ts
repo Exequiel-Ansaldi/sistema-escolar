@@ -1,15 +1,32 @@
-import { Controller, Get, Post, Put, Param, Body, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Param,
+  Query,
+  Body,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { CalificacionesService } from './calificaciones.service';
 import { CrearCalificacionDto } from './dto/crear-calificacion.dto';
 import { ActualizarCalificacionDto } from './dto/actualizar-calificacion.dto';
+import { FiltrarCalificacionesDto } from './dto/filtrar-calificaciones.dto';
 
 @Controller('calificaciones')
 export class CalificacionesController {
   constructor(private calificacionesService: CalificacionesService) {}
 
   @Get('alumno/:alumnoId')
-  findByAlumno(@Param('alumnoId', ParseIntPipe) alumnoId: number) {
-    return this.calificacionesService.findByAlumno(alumnoId);
+  findByAlumno(
+    @Param('alumnoId', ParseIntPipe) alumnoId: number,
+    @Query() query: FiltrarCalificacionesDto,
+  ) {
+    return this.calificacionesService.findByAlumno(
+      alumnoId,
+      query.page ?? 1,
+      query.limit ?? 10,
+    );
   }
 
   @Get('alumno/:alumnoId/promedio')
@@ -41,7 +58,10 @@ export class CalificacionesController {
   }
 
   @Put(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: ActualizarCalificacionDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ActualizarCalificacionDto,
+  ) {
     return this.calificacionesService.update(id, dto);
   }
 }

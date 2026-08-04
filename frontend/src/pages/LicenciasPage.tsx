@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../services/api';
-import { DataTable, FormModal, Input, Select, Button, Badge, Toast, ConfirmModal } from '../components/ui';
+import { DataTable, FormModal, Input, Select, Button, Badge, Toast, ConfirmModal, Pagination } from '../components/ui';
 import { AlertCircle } from 'lucide-react';
 
 export function LicenciasPage() {
@@ -15,15 +15,18 @@ export function LicenciasPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [dniFilter, setDniFilter] = useState('');
   const [nombreFilter, setNombreFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => { api.getAllDocentes().then(d => setDocentes(d.filter((x: any) => x.estado === 'activo'))); }, []);
 
   const load = useCallback(async () => {
     if (!docenteId) return;
-    try { setLicencias(await api.getLicencias(Number(docenteId))); }
+    try { const r = await api.getLicencias(Number(docenteId), page); setLicencias(r.data ?? []); setTotalPages(r.totalPages ?? 1); }
     catch (err: any) { setToast({ message: err.message, type: 'error' }); setLicencias([]); }
-  }, [docenteId]);
+  }, [docenteId, page]);
 
+  useEffect(() => { setPage(1); }, [docenteId]);
   useEffect(() => { load(); }, [load]);
 
   const save = async (body: any) => {
@@ -80,6 +83,8 @@ export function LicenciasPage() {
         { key: 'motivo', label: 'Motivo' },
         { key: 'estado', label: 'Estado', render: (v: string) => <Badge variant={badgeVariant(v)}>{v}</Badge> },
       ]} data={licencias} onEdit={(r) => { setEditing(r); setShowForm(true); }} onDelete={confirmDelete} />
+
+      {licencias.length > 0 && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
 
       {showForm && <FormModal title={editing ? 'Editar Licencia' : 'Nueva Licencia'} onClose={() => { setShowForm(false); setEditing(null); setFormError(''); }}>
         <form onSubmit={e => { e.preventDefault(); save(Object.fromEntries(new FormData(e.currentTarget))); }}>

@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../services/api';
-import { DataTable, FormModal, Select, Input, Button, Toast } from '../components/ui';
+import { DataTable, FormModal, Select, Input, Button, Toast, Pagination } from '../components/ui';
+
+type TabKey = 'actas' | 'acuerdos' | 'seguimientos' | 'tutores';
 
 export function ActasPage() {
   const [alumnos, setAlumnos] = useState<any[]>([]);
@@ -9,21 +11,34 @@ export function ActasPage() {
   const [seguimientos, setSeguimientos] = useState<any[]>([]);
   const [tutores, setTutores] = useState<any[]>([]);
   const [alumnoId, setAlumnoId] = useState('');
-  const [tab, setTab] = useState<'actas' | 'acuerdos' | 'seguimientos' | 'tutores'>('actas');
+  const [tab, setTab] = useState<TabKey>('actas');
   const [showForm, setShowForm] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [dniFilter, setDniFilter] = useState('');
   const [nombreFilter, setNombreFilter] = useState('');
+  const [pag, setPag] = useState<Record<TabKey, { page: number; totalPages: number }>>({
+    actas: { page: 1, totalPages: 1 },
+    acuerdos: { page: 1, totalPages: 1 },
+    seguimientos: { page: 1, totalPages: 1 },
+    tutores: { page: 1, totalPages: 1 },
+  });
 
   useEffect(() => { api.getAllAlumnos().then(a => setAlumnos(a.filter((x: any) => x.estado === 'activo'))); }, []);
 
   const load = useCallback(async () => {
     if (!alumnoId) return;
     const id = Number(alumnoId);
-    const [ac, ag, seg, tut] = await Promise.all([api.getActas(id), api.getAcuerdos(id), api.getSeguimientos(id), api.getTutores(id)]);
-    setActas(ac); setAcuerdos(ag); setSeguimientos(seg); setTutores(tut);
-  }, [alumnoId]);
+    const [ac, ag, seg, tut] = await Promise.all([
+      api.getActas(id, pag.actas.page),
+      api.getAcuerdos(id, pag.acuerdos.page),
+      api.getSeguimientos(id, pag.seguimientos.page),
+      api.getTutores(id, pag.tutores.page),
+    ]);
+    setActas(ac.data ?? []); setAcuerdos(ag.data ?? []); setSeguimientos(seg.data ?? []); setTutores(tut.data ?? []);
+    setPag(prev => ({ actas: { ...prev.actas, totalPages: ac.totalPages ?? 1 }, acuerdos: { ...prev.acuerdos, totalPages: ag.totalPages ?? 1 }, seguimientos: { ...prev.seguimientos, totalPages: seg.totalPages ?? 1 }, tutores: { ...prev.tutores, totalPages: tut.totalPages ?? 1 } }));
+  }, [alumnoId, pag.actas.page, pag.acuerdos.page, pag.seguimientos.page, pag.tutores.page]);
 
+  useEffect(() => { setPag({ actas: { page: 1, totalPages: 1 }, acuerdos: { page: 1, totalPages: 1 }, seguimientos: { page: 1, totalPages: 1 }, tutores: { page: 1, totalPages: 1 } }); }, [alumnoId]);
   useEffect(() => { load(); }, [load]);
 
   const createEntry = async (body: any) => {
@@ -75,22 +90,34 @@ export function ActasPage() {
         <button onClick={() => setShowForm(true)} className="ml-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-medium transition-colors mb-2">+ Nuevo</button>
       </div>
 
-      {tab === 'actas' && <DataTable columns={[
-        { key: 'numero', label: 'N°' }, { key: 'tipo', label: 'Tipo' }, { key: 'descripcion', label: 'Descripción' },
-        { key: 'fecha', label: 'Fecha', render: (v: string) => new Date(v).toLocaleDateString() },
-      ]} data={actas} />}
-      {tab === 'acuerdos' && <DataTable columns={[
-        { key: 'tipo', label: 'Tipo' }, { key: 'descripcion', label: 'Descripción' }, { key: 'estado', label: 'Estado' },
-        { key: 'fecha', label: 'Fecha', render: (v: string) => new Date(v).toLocaleDateString() },
-      ]} data={acuerdos} />}
-      {tab === 'seguimientos' && <DataTable columns={[
-        { key: 'titulo', label: 'Título' }, { key: 'tipo', label: 'Tipo' }, { key: 'descripcion', label: 'Descripción' },
-        { key: 'estado', label: 'Estado' }, { key: 'fecha', label: 'Fecha', render: (v: string) => new Date(v).toLocaleDateString() },
-      ]} data={seguimientos} />}
+      {tab === 'actas' && <>
+        <DataTable columns={[
+          { key: 'numero', label: 'N°' }, { key: 'tipo', label: 'Tipo' }, { key: 'descripcion', label: 'Descripción' },
+          { key: 'fecha', label: 'Fecha', render: (v: string) => new Date(v).toLocaleDateString() },
+        ]} data={actas} />
+        {actas.length > 0 && <Pagination page={pag.actas.page} totalPages={pag.actas.totalPages} onPageChange={p => setPag(prev => ({ ...prev, actas: { ...prev.actas, page: p } }))} />}
+      </>}
+      {tab === 'acuerdos' && <>
+        <DataTable columns={[
+          { key: 'tipo', label: 'Tipo' }, { key: 'descripcion', label: 'Descripción' }, { key: 'estado', label: 'Estado' },
+          { key: 'fecha', label: 'Fecha', render: (v: string) => new Date(v).toLocaleDateString() },
+        ]} data={acuerdos} />
+        {acuerdos.length > 0 && <Pagination page={pag.acuerdos.page} totalPages={pag.acuerdos.totalPages} onPageChange={p => setPag(prev => ({ ...prev, acuerdos: { ...prev.acuerdos, page: p } }))} />}
+      </>}
+      {tab === 'seguimientos' && <>
+        <DataTable columns={[
+          { key: 'titulo', label: 'Título' }, { key: 'tipo', label: 'Tipo' }, { key: 'descripcion', label: 'Descripción' },
+          { key: 'estado', label: 'Estado' }, { key: 'fecha', label: 'Fecha', render: (v: string) => new Date(v).toLocaleDateString() },
+        ]} data={seguimientos} />
+        {seguimientos.length > 0 && <Pagination page={pag.seguimientos.page} totalPages={pag.seguimientos.totalPages} onPageChange={p => setPag(prev => ({ ...prev, seguimientos: { ...prev.seguimientos, page: p } }))} />}
+      </>}
 
-      {tab === 'tutores' && <DataTable columns={[
-        { key: 'nombre', label: 'Nombre' }, { key: 'apellido', label: 'Apellido' }, { key: 'dni', label: 'DNI' },
-      ]} data={tutores} onDelete={async (row) => { await api.deleteTutor(row.id); setToast({ message: 'Tutor eliminado', type: 'success' }); load(); }} />}
+      {tab === 'tutores' && <>
+        <DataTable columns={[
+          { key: 'nombre', label: 'Nombre' }, { key: 'apellido', label: 'Apellido' }, { key: 'dni', label: 'DNI' },
+        ]} data={tutores} onDelete={async (row) => { await api.deleteTutor(row.id); setToast({ message: 'Tutor eliminado', type: 'success' }); load(); }} />
+        {tutores.length > 0 && <Pagination page={pag.tutores.page} totalPages={pag.tutores.totalPages} onPageChange={p => setPag(prev => ({ ...prev, tutores: { ...prev.tutores, page: p } }))} />}
+      </>}
 
       {showForm && <FormModal title={`Nuevo ${tab.slice(0, -1)}`} onClose={() => setShowForm(false)}>
         <form onSubmit={e => { e.preventDefault(); createEntry(Object.fromEntries(new FormData(e.currentTarget))); }}>

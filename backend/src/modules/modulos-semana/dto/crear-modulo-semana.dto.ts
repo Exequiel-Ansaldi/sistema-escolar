@@ -1,4 +1,11 @@
-import { IsInt, IsDateString, Min, Max, IsOptional, IsString, IsIn } from 'class-validator';
+import {
+  IsInt,
+  IsDateString,
+  Min,
+  IsOptional,
+  IsString,
+  IsIn,
+} from 'class-validator';
 
 export class CrearModuloSemanaDto {
   @IsInt()

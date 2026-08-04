@@ -28,6 +28,7 @@ export function ModulosPage() {
   const [docentes, setDocentes] = useState<any[]>([]);
   const [materias, setMaterias] = useState<any[]>([]);
   const [registros, setRegistros] = useState<any[]>([]);
+  const [totales, setTotales] = useState({ previstos: 0, dictados: 0 });
   const [loading, setLoading] = useState(false);
   const [anioFilter, setAnioFilter] = useState('');
   const [divisionFilter, setDivisionFilter] = useState('');
@@ -57,30 +58,33 @@ export function ModulosPage() {
     let cancelled = false;
     setLoading(true);
     (async () => {
-      try { const r = await api.getModulosSemana(mesActual, page); if (!cancelled) { setRegistros(r.data ?? []); setTotalPages(r.totalPages ?? 1); } }
-      catch (err: any) { if (!cancelled) { setToast({ message: err.message, type: 'error' }); setRegistros([]); } }
+      try {
+        const r = await api.getModulosSemana(mesActual, page, 10, {
+          anio: anioFilter || undefined,
+          division: divisionFilter || undefined,
+          turno: turnoFilter || undefined,
+          materiaId: materiaFilter ? Number(materiaFilter) : undefined,
+        });
+        if (!cancelled) {
+          setRegistros(r.data ?? []);
+          setTotalPages(r.totalPages ?? 1);
+          setTotales({ previstos: r.totalPrevistos ?? 0, dictados: r.totalDictados ?? 0 });
+        }
+      } catch (err: any) { if (!cancelled) { setToast({ message: err.message, type: 'error' }); setRegistros([]); } }
       finally { if (!cancelled) setLoading(false); }
     })();
     return () => { cancelled = true; };
-  }, [mesActual, page, refreshKey]);
+  }, [mesActual, page, refreshKey, anioFilter, divisionFilter, turnoFilter, materiaFilter]);
 
-  const aniosDisponibles = [...new Set(registros.map(r => r.curso?.anio).filter(Boolean))].sort();
-  const divisionesDisponibles = [...new Set(registros
-    .filter(r => !anioFilter || r.curso?.anio === Number(anioFilter))
-    .map(r => r.curso?.division).filter(Boolean))].sort();
-  const turnosDisponibles = [...new Set(registros
-    .filter(r => (!anioFilter || r.curso?.anio === Number(anioFilter)) && (!divisionFilter || r.curso?.division === divisionFilter))
-    .map(r => r.curso?.turno).filter(Boolean))].sort();
+  const aniosDisponibles = [...new Set(cursos.map(c => c.anio).filter(Boolean))].sort();
+  const divisionesDisponibles = [...new Set(cursos
+    .filter(c => !anioFilter || c.anio === Number(anioFilter))
+    .map(c => c.division).filter(Boolean))].sort();
+  const turnosDisponibles = [...new Set(cursos
+    .filter(c => (!anioFilter || c.anio === Number(anioFilter)) && (!divisionFilter || c.division === divisionFilter))
+    .map(c => c.turno).filter(Boolean))].sort();
 
-  const filtered = registros.filter(r =>
-    (!anioFilter || r.curso?.anio === Number(anioFilter)) &&
-    (!divisionFilter || r.curso?.division === divisionFilter) &&
-    (!turnoFilter || r.curso?.turno === turnoFilter) &&
-    (!materiaFilter || r.materiaId === Number(materiaFilter))
-  );
-
-  const totalPrevistos = filtered.reduce((s, r) => s + r.modulosPrevistos, 0);
-  const totalDictados = filtered.reduce((s, r) => s + r.modulosDictados, 0);
+  const onFilterChange = (setter: (v: string) => void) => (v: string) => { setPage(1); setter(v); };
 
   const [y, m] = mesActual.split('-').map(Number);
   const prevMonth = () => { setPage(1); setMesActual(m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`); };
@@ -129,20 +133,20 @@ export function ModulosPage() {
             <Button onClick={nextMonth} variant="secondary">&gt;</Button>
           </div>
           <span className="text-slate-300">|</span>
-          <select value={anioFilter} onChange={e => setAnioFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <select value={anioFilter} onChange={e => onFilterChange(setAnioFilter)(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Todos los años</option>
             {aniosDisponibles.map(a => <option key={a} value={a}>{a}°</option>)}
           </select>
-          <select value={divisionFilter} onChange={e => setDivisionFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <select value={divisionFilter} onChange={e => onFilterChange(setDivisionFilter)(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Todas las divisiones</option>
             {divisionesDisponibles.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
-          <select value={turnoFilter} onChange={e => setTurnoFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <select value={turnoFilter} onChange={e => onFilterChange(setTurnoFilter)(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Todos los turnos</option>
             {turnosDisponibles.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
           {materias.length > 0 && (
-            <select value={materiaFilter} onChange={e => setMateriaFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+            <select value={materiaFilter} onChange={e => onFilterChange(setMateriaFilter)(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
               <option value="">Todas las materias</option>
               {materias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
@@ -150,14 +154,14 @@ export function ModulosPage() {
         </div>
       </div>
 
-      {filtered.length > 0 && (
+      {totales.previstos > 0 && (
         <div className="bg-blue-50 rounded-xl border border-blue-200 p-4 flex items-center justify-between">
           <span className="text-sm text-blue-800 font-medium">Totales del mes</span>
           <div className="flex gap-6 text-sm">
-            <span className="text-blue-700">Previstos: <strong>{totalPrevistos}</strong></span>
-            <span className="text-blue-700">Dictados: <strong>{totalDictados}</strong></span>
+            <span className="text-blue-700">Previstos: <strong>{totales.previstos}</strong></span>
+            <span className="text-blue-700">Dictados: <strong>{totales.dictados}</strong></span>
             <span className="text-blue-700">
-              Eficiencia: <strong>{totalPrevistos ? Math.round((totalDictados / totalPrevistos) * 100) : 0}%</strong>
+              Eficiencia: <strong>{totales.previstos ? Math.round((totales.dictados / totales.previstos) * 100) : 0}%</strong>
             </span>
           </div>
         </div>
@@ -172,7 +176,7 @@ export function ModulosPage() {
         { key: 'modulosDictados', label: 'Dictados' },
         { key: 'factor', label: 'Factor', render: (v: string) => v ? <Badge variant={v === 'ausencia' || v === 'licencia' ? 'danger' : 'warning'}>{v}</Badge> : <Badge variant="success">normal</Badge> },
         { key: 'observacion', label: 'Obs.', render: (v: string) => v ?? '-' },
-      ]} data={filtered} loading={loading} onEdit={(r) => { setEditing(r); setShowForm(true); }} onDelete={(r) => setDeleteTarget(r)} />
+      ]} data={registros} loading={loading} onEdit={(r) => { setEditing(r); setShowForm(true); }} onDelete={(r) => setDeleteTarget(r)} />
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       {showForm && <FormModal title={editing ? 'Editar Registro' : 'Registrar Módulos Semanales'} onClose={() => { setShowForm(false); setEditing(null); }}>

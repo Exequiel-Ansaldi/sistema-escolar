@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { DashboardRepository } from './repositories/dashboard.repository';
 import { DiasSinClasesRepository } from '../dias-sin-clases/repositories/dias-sin-clases.repository';
+import type {
+  DashboardResumenResponse,
+  AlumnosPorCursoResponse,
+  CalificacionesResumenResponse,
+} from './dto/dashboard-response';
 
 @Injectable()
 export class DashboardService {
@@ -9,7 +14,7 @@ export class DashboardService {
     private diasSinClasesRepo: DiasSinClasesRepository,
   ) {}
 
-  async resumen() {
+  async resumen(): Promise<DashboardResumenResponse> {
     const [alumnos, docentes, cursos, usuarios] = await Promise.all([
       this.repo.countAlumnosActivos(),
       this.repo.countDocentesActivos(),
@@ -18,7 +23,9 @@ export class DashboardService {
     ]);
 
     const hoy = new Date();
-    const fechaHoy = new Date(Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()));
+    const fechaHoy = new Date(
+      Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()),
+    );
 
     const esHabil = async (d: Date): Promise<boolean> => {
       const dia = d.getUTCDay();
@@ -29,7 +36,7 @@ export class DashboardService {
       return sinClases.length === 0;
     };
 
-    let fecha = new Date(fechaHoy);
+    const fecha = new Date(fechaHoy);
     let intentos = 0;
     while (!(await esHabil(fecha)) && intentos < 30) {
       fecha.setUTCDate(fecha.getUTCDate() - 1);
@@ -58,20 +65,24 @@ export class DashboardService {
     ]);
 
     const materias = await this.repo.findMaterias();
-    const materiasMap = new Map(materias.map(m => [m.id, m.nombre]));
+    const materiasMap = new Map(materias.map((m) => [m.id, m.nombre]));
 
     const modulos = {
       totalPrevistos: modulosAggr._sum.modulosPrevistos ?? 0,
       totalDictados: modulosAggr._sum.modulosDictados ?? 0,
       eficiencia: modulosAggr._sum.modulosPrevistos
-        ? Math.round((Number(modulosAggr._sum.modulosDictados) / Number(modulosAggr._sum.modulosPrevistos)) * 100)
+        ? Math.round(
+            (Number(modulosAggr._sum.modulosDictados) /
+              Number(modulosAggr._sum.modulosPrevistos)) *
+              100,
+          )
         : 0,
-      porMateria: porMateriaRaw.map(g => ({
+      porMateria: porMateriaRaw.map((g) => ({
         nombre: materiasMap.get(g.materiaId) ?? `ID ${g.materiaId}`,
         previstos: g._sum.modulosPrevistos ?? 0,
         dictados: g._sum.modulosDictados ?? 0,
       })),
-      porFactor: porFactorRaw.map(g => ({
+      porFactor: porFactorRaw.map((g) => ({
         factor: g.factor ?? 'normal',
         count: g._count,
         dictados: g._sum.modulosDictados ?? 0,
@@ -85,9 +96,9 @@ export class DashboardService {
     };
   }
 
-  async alumnosPorCurso() {
+  async alumnosPorCurso(): Promise<AlumnosPorCursoResponse[]> {
     const cursos = await this.repo.findCursosConInscripciones();
-    return cursos.map(c => ({
+    return cursos.map((c) => ({
       id: c.id,
       nombre: `${c.anio}°${c.division} - ${c.turno} (${c.orientacion})`,
       alumnos: c._count.inscripciones,
@@ -98,7 +109,7 @@ export class DashboardService {
     return this.repo.findUltimasAsistencias(limite);
   }
 
-  async calificacionesResumen() {
+  async calificacionesResumen(): Promise<CalificacionesResumenResponse> {
     const aggr = await this.repo.aggregateCalificaciones();
     return {
       totalCalificaciones: aggr._count,

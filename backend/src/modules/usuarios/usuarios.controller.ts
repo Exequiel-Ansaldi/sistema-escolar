@@ -1,15 +1,26 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  ParseIntPipe,
+  Query,
+} from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
+import { FiltrarUsuariosDto } from './dto/filtrar-usuarios.dto';
 
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private usuariosService: UsuariosService) {}
 
   @Get()
-  findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
-    return this.usuariosService.findAll(Number(page) || 1, Number(limit) || 10);
+  findAll(@Query() query: FiltrarUsuariosDto) {
+    return this.usuariosService.findAll(query.page ?? 1, query.limit ?? 10);
   }
 
   @Get(':id')
@@ -23,7 +34,10 @@ export class UsuariosController {
   }
 
   @Put(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: ActualizarUsuarioDto) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ActualizarUsuarioDto,
+  ) {
     return this.usuariosService.update(id, dto);
   }
 

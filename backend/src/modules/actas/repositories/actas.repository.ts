@@ -1,44 +1,42 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { CrearActaDto } from '../dto/crear-acta.dto';
+import type { ActaResponse } from '../dto/acta-response';
+import type { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class ActasRepository {
   constructor(private prisma: PrismaService) {}
-  findByAlumno(alumnoId: number) {
-    return this.prisma.acta.findMany({ where: { alumnoId }, orderBy: { fecha: 'desc' } });
-  }
-  create(data: any) {
-    return this.prisma.acta.create({ data: { ...data, fecha: data.fecha ? new Date(data.fecha) : new Date() } });
-  }
-}
 
-@Injectable()
-export class AcuerdosRepository {
-  constructor(private prisma: PrismaService) {}
-  findByAlumno(alumnoId: number) {
-    return this.prisma.acuerdo.findMany({ where: { alumnoId }, orderBy: { fecha: 'desc' } });
+  async findByAlumno(
+    alumnoId: number,
+    page = 1,
+    limit = 10,
+  ): Promise<PaginatedResult<ActaResponse>> {
+    const skip = (page - 1) * limit;
+    const where: Prisma.ActaWhereInput = { alumnoId };
+    const [rows, total] = await Promise.all([
+      this.prisma.acta.findMany({
+        where,
+        orderBy: { fecha: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.acta.count({ where }),
+    ]);
+    const data = rows.map((r) => ({ ...r, fecha: r.fecha.toISOString() }));
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
-  create(data: any) {
-    return this.prisma.acuerdo.create({ data: { ...data, fecha: data.fecha ? new Date(data.fecha) : new Date() } });
-  }
-  update(id: number, data: any) { return this.prisma.acuerdo.update({ where: { id }, data }); }
-}
 
-@Injectable()
-export class SeguimientoRepository {
-  constructor(private prisma: PrismaService) {}
-  findByAlumno(alumnoId: number) {
-    return this.prisma.seguimiento.findMany({ where: { alumnoId }, orderBy: { fecha: 'desc' } });
+  create(data: CrearActaDto): Promise<ActaResponse> {
+    return this.prisma.acta
+      .create({
+        data: {
+          ...data,
+          fecha: data.fecha ? new Date(data.fecha) : new Date(),
+        },
+      })
+      .then((r) => ({ ...r, fecha: r.fecha.toISOString() }));
   }
-  create(data: any) {
-    return this.prisma.seguimiento.create({ data: { ...data, fecha: data.fecha ? new Date(data.fecha) : new Date() } });
-  }
-}
-
-@Injectable()
-export class TutoresRepository {
-  constructor(private prisma: PrismaService) {}
-  findByAlumno(alumnoId: number) { return this.prisma.tutor.findMany({ where: { alumnoId } }); }
-  create(data: any) { return this.prisma.tutor.create({ data }); }
-  delete(id: number) { return this.prisma.tutor.delete({ where: { id } }); }
 }

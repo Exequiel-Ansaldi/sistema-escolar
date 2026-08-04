@@ -1,19 +1,43 @@
-import { Controller, Get, Post, Patch, Delete, Param, Query, Body, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Query,
+  Body,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { CursoMateriaService } from './curso-materia.service';
 import { AsignarMateriaCursoDto } from './dto/asignar-materia-curso.dto';
+import { ActualizarCargaHorariaDto } from './dto/actualizar-carga-horaria.dto';
+import { FiltrarCursoMateriaDto } from './dto/filtrar-curso-materia.dto';
 
 @Controller('cursos-materias')
 export class CursoMateriaController {
   constructor(private service: CursoMateriaService) {}
 
   @Get()
-  findAll(@Query('anio') anio?: string, @Query('division') division?: string, @Query('turno') turno?: string, @Query('page') page = 1, @Query('limit') limit = 10) {
-    return this.service.findAll(anio, division, turno, +page, +limit);
+  findAll(@Query() query: FiltrarCursoMateriaDto) {
+    return this.service.findAll(
+      query.anio,
+      query.division,
+      query.turno,
+      query.page ?? 1,
+      query.limit ?? 10,
+    );
   }
 
   @Get('grupos')
-  findGrupos(@Query('anio') anio?: string, @Query('division') division?: string, @Query('turno') turno?: string, @Query('page') page = 1, @Query('limit') limit = 10) {
-    return this.service.findGrupos(anio, division, turno, +page, +limit);
+  findGrupos(@Query() query: FiltrarCursoMateriaDto) {
+    return this.service.findGrupos(
+      query.anio,
+      query.division,
+      query.turno,
+      query.page ?? 1,
+      query.limit ?? 10,
+    );
   }
 
   @Get('curso/:cursoId')
@@ -30,9 +54,9 @@ export class CursoMateriaController {
   actualizarCarga(
     @Param('cursoId', ParseIntPipe) cursoId: number,
     @Param('materiaId', ParseIntPipe) materiaId: number,
-    @Body() body: { cargaHoraria?: number; modulosPorSemana?: number },
+    @Body() dto: ActualizarCargaHorariaDto,
   ) {
-    return this.service.actualizarCarga(cursoId, materiaId, body);
+    return this.service.actualizarCarga(cursoId, materiaId, dto);
   }
 
   @Delete(':cursoId/:materiaId')

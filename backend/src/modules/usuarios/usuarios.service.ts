@@ -28,7 +28,7 @@ export class UsuariosService {
 
   async update(id: number, dto: ActualizarUsuarioDto) {
     await this.findById(id);
-    const data: any = { ...dto };
+    const data = { ...dto };
     if (dto.contrasena) {
       data.contrasena = await bcrypt.hash(dto.contrasena, 10);
     }

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { DataTable, FormModal, Input, Button, Badge, Toast } from '../components/ui';
-import { FileText } from 'lucide-react';
+import { DataTable, FormModal, Input, Button, Badge, Toast, Pagination } from '../components/ui';
+import { FileText, AlertCircle } from 'lucide-react';
 
 export function AsistenciasPage() {
   const [alumnos, setAlumnos] = useState<any[]>([]);
+  const [cursos, setCursos] = useState<any[]>([]);
   const [asistencias, setAsistencias] = useState<any[]>([]);
   const [alumnoId, setAlumnoId] = useState('');
   const [anioFilter, setAnioFilter] = useState('');
@@ -17,29 +18,60 @@ export function AsistenciasPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [dniFilter, setDniFilter] = useState('');
   const [nombreFilter, setNombreFilter] = useState('');
+  const [sinClasesMsg, setSinClasesMsg] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    api.getAllAlumnos().then(setAlumnos);
+    Promise.all([api.getAllAlumnos(), api.getAllCursos()]).then(([a, c]) => {
+      setAlumnos(a);
+      setCursos(c.filter((x: any) => x.estado === 'activo'));
+    });
   }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!fecha) return;
-      try { const d = await api.buscarAsistencias('', fecha); if (!cancelled) setAsistencias(d); }
-      catch (err: any) { if (!cancelled) { setToast({ message: err.message, type: 'error' }); setAsistencias([]); } }
+      try {
+        const d = await api.buscarAsistencias('', fecha, page, 10, {
+          anio: anioFilter || undefined,
+          division: divisionFilter || undefined,
+          turno: turnoFilter || undefined,
+        });
+        if (!cancelled) { setAsistencias(d.data ?? []); setTotalPages(d.totalPages ?? 1); }
+      } catch (err: any) { if (!cancelled) { setToast({ message: err.message, type: 'error' }); setAsistencias([]); } }
     })();
     return () => { cancelled = true; };
-  }, [fecha, refreshKey]);
+  }, [fecha, refreshKey, page, anioFilter, divisionFilter, turnoFilter]);
 
-  const aniosDisponibles = [...new Set(asistencias.map(a => a.curso?.anio).filter(Boolean))].sort();
-  const divisionesDisponibles = [...new Set(asistencias
-    .filter(a => !anioFilter || a.curso?.anio === Number(anioFilter))
-    .map(a => a.curso?.division).filter(Boolean))].sort();
-  const turnosDisponibles = [...new Set(asistencias
-    .filter(a => (!anioFilter || a.curso?.anio === Number(anioFilter)) && (!divisionFilter || a.curso?.division === divisionFilter))
-    .map(a => a.curso?.turno).filter(Boolean))].sort();
+  const aniosDisponibles = [...new Set(cursos.map(c => c.anio).filter(Boolean))].sort();
+  const divisionesDisponibles = [...new Set(cursos
+    .filter(c => !anioFilter || c.anio === Number(anioFilter))
+    .map(c => c.division).filter(Boolean))].sort();
+  const turnosDisponibles = [...new Set(cursos
+    .filter(c => (!anioFilter || c.anio === Number(anioFilter)) && (!divisionFilter || c.division === divisionFilter))
+    .map(c => c.turno).filter(Boolean))].sort();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!alumnoId || !fecha) { setSinClasesMsg(null); return; }
+      const alumno = alumnos.find(a => a.id === Number(alumnoId));
+      const curso = alumno?.inscripciones?.find((i: any) => i.estado === 'activo')?.curso;
+      const dia = new Date(fecha + 'T12:00:00').getDay();
+      if (!curso) { if (!cancelled) setSinClasesMsg('El alumno no tiene un curso activo'); return; }
+      if (dia === 0 || dia === 6) { if (!cancelled) setSinClasesMsg('Fin de semana: no hay clases'); return; }
+      try {
+        const r = await api.getDiasSinClases({ desde: fecha, hasta: fecha, cursoId: curso.id }, 1, 100);
+        if (!cancelled) setSinClasesMsg(r.data.length > 0 ? `No hay clases: ${r.data[0].tipo}` : null);
+      } catch { if (!cancelled) setSinClasesMsg(null); }
+    })();
+    return () => { cancelled = true; };
+  }, [alumnoId, fecha, alumnos]);
+
+  const onFilterChange = (setter: (v: string) => void) => (v: string) => { setPage(1); setter(v); };
 
   const registrar = async () => {
     const form = document.getElementById('asistenciaForm') as HTMLFormElement;
@@ -55,10 +87,7 @@ export function AsistenciasPage() {
   const filtered = asistencias.filter(a => {
     const nombre = `${a.alumno?.apellido ?? ''} ${a.alumno?.nombre ?? ''}`.toLowerCase();
     const dni = String(a.alumno?.dni ?? '');
-    return nombre.includes(nombreFilter.toLowerCase()) && dni.includes(dniFilter) &&
-      (!anioFilter || a.curso?.anio === Number(anioFilter)) &&
-      (!divisionFilter || a.curso?.division === divisionFilter) &&
-      (!turnoFilter || a.curso?.turno === turnoFilter);
+    return nombre.includes(nombreFilter.toLowerCase()) && dni.includes(dniFilter);
   });
 
   return (
@@ -75,24 +104,25 @@ export function AsistenciasPage() {
         <div className="flex flex-wrap items-center gap-3">
           <input value={dniFilter} onChange={e => setDniFilter(e.target.value)} placeholder="DNI" className="w-full sm:w-32 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
           <input value={nombreFilter} onChange={e => setNombreFilter(e.target.value)} placeholder="Nombre" className="w-full sm:w-44 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
-          <select value={anioFilter} onChange={e => setAnioFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <select value={anioFilter} onChange={e => onFilterChange(setAnioFilter)(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Todos los años</option>
             {aniosDisponibles.map(a => <option key={a} value={a}>{a}°</option>)}
           </select>
-          <select value={divisionFilter} onChange={e => setDivisionFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <select value={divisionFilter} onChange={e => onFilterChange(setDivisionFilter)(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Todas las divisiones</option>
             {divisionesDisponibles.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
-          <select value={turnoFilter} onChange={e => setTurnoFilter(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <select value={turnoFilter} onChange={e => onFilterChange(setTurnoFilter)(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none bg-white">
             <option value="">Todos los turnos</option>
             {turnosDisponibles.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
-          <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" />
+          <input type="date" value={fecha} onChange={e => { setFecha(e.target.value); setPage(1); }} className="border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none" />
         </div>
       </div>
 
       <DataTable columns={[
         { key: 'alumno', label: 'Alumno', render: (_: any, r: any) => `${r.alumno?.apellido}, ${r.alumno?.nombre}` },
+        { key: 'curso', label: 'Curso', render: (_: any, r: any) => r.curso ? `${r.curso.anio}°${r.curso.division} - ${r.curso.turno}` : '-' },
         { key: 'estado', label: 'Estado', render: (v: string) => {
           if (v === 'presente') return <Badge variant="success">Presente</Badge>;
           if (v === 'no_corresponde') return <Badge variant="default">No corresponde</Badge>;
@@ -103,6 +133,8 @@ export function AsistenciasPage() {
           <button onClick={() => api.exportPdfAsistencia(r.alumnoId, fecha, fecha)} className="text-slate-400 hover:text-blue-600 transition-colors" title="Exportar PDF"><FileText size={16} /></button>
         )},
       ]} data={filtered} />
+
+      {asistencias.length > 0 && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
 
       {showForm && <FormModal title="Marcar inasistencia" onClose={() => setShowForm(false)}>
         <form id="asistenciaForm" onSubmit={e => { e.preventDefault(); registrar(); }}>
@@ -149,7 +181,13 @@ export function AsistenciasPage() {
             <span className="text-sm text-slate-700">Justificada</span>
           </label>
           <Input label="Observación" name="observacion" />
-          <Button type="submit" variant="primary">Guardar</Button>
+          {sinClasesMsg && (
+            <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3.5 py-2.5 text-sm text-amber-700">
+              <AlertCircle size={16} className="shrink-0" />
+              {sinClasesMsg}
+            </div>
+          )}
+          <Button type="submit" variant="primary" disabled={!alumnoId || Boolean(sinClasesMsg)}>Guardar</Button>
         </form>
       </FormModal>}
 

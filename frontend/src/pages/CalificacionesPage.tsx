@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../services/api';
-import { DataTable, FormModal, Select, Input, Button, Toast } from '../components/ui';
+import { DataTable, FormModal, Select, Input, Button, Toast, Pagination } from '../components/ui';
 import { Calculator, BarChart3, BookOpen, FileText } from 'lucide-react';
 
 export function CalificacionesPage() {
@@ -21,18 +21,21 @@ export function CalificacionesPage() {
 
   const [promTrimestre, setPromTrimestre] = useState<any[]>([]);
   const [promMateria, setPromMateria] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const load = useCallback(async () => {
     if (!alumnoId) return;
     const [cal, prom, promT, promM] = await Promise.all([
-      api.getCalificaciones(Number(alumnoId)),
+      api.getCalificaciones(Number(alumnoId), page),
       api.getPromedio(Number(alumnoId)),
       api.getPromedioPorTrimestre(Number(alumnoId)),
       api.getPromedioPorMateria(Number(alumnoId)),
     ]);
-    setCalificaciones(cal); setPromedio(prom); setPromTrimestre(promT); setPromMateria(promM);
-  }, [alumnoId]);
+    setCalificaciones(cal.data ?? []); setTotalPages(cal.totalPages ?? 1); setPromedio(prom); setPromTrimestre(promT); setPromMateria(promM);
+  }, [alumnoId, page]);
 
+  useEffect(() => { setPage(1); }, [alumnoId]);
   useEffect(() => { load(); }, [load]);
 
   const alumnosFiltrados = alumnos.filter(a => {
@@ -107,6 +110,8 @@ export function CalificacionesPage() {
         { key: 'fecha', label: 'Fecha', render: (v: string) => new Date(v).toLocaleDateString() },
         { key: 'observacion', label: 'Observación' },
       ]} data={calificaciones} />
+
+      {calificaciones.length > 0 && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
 
       {showForm && <FormModal title="Nueva Calificación" onClose={() => setShowForm(false)}>
         <form onSubmit={async e => {

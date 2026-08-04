@@ -1,4 +1,4 @@
-import { Controller, Get, Query, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 
 @Controller('dashboard')
@@ -17,7 +17,9 @@ export class DashboardController {
 
   @Get('ultimas-asistencias')
   ultimasAsistencias(@Query('limite') limite?: string) {
-    return this.dashboardService.ultimasAsistencias(limite ? Number(limite) : 10);
+    return this.dashboardService.ultimasAsistencias(
+      limite ? Number(limite) : 10,
+    );
   }
 
   @Get('calificaciones-resumen')

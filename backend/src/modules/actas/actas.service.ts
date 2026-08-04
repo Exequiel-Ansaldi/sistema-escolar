@@ -1,32 +1,22 @@
 import { Injectable } from '@nestjs/common';
-import { ActasRepository, AcuerdosRepository, SeguimientoRepository, TutoresRepository } from './repositories/actas.repository';
+import { ActasRepository } from './repositories/actas.repository';
+import { CrearActaDto } from './dto/crear-acta.dto';
+import type { ActaResponse } from './dto/acta-response';
+import type { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
 
 @Injectable()
 export class ActasService {
   constructor(private repo: ActasRepository) {}
-  findByAlumno(alumnoId: number) { return this.repo.findByAlumno(alumnoId); }
-  create(data: any) { return this.repo.create(data); }
-}
 
-@Injectable()
-export class AcuerdosService {
-  constructor(private repo: AcuerdosRepository) {}
-  findByAlumno(alumnoId: number) { return this.repo.findByAlumno(alumnoId); }
-  create(data: any) { return this.repo.create(data); }
-  update(id: number, data: any) { return this.repo.update(id, data); }
-}
+  findByAlumno(
+    alumnoId: number,
+    page = 1,
+    limit = 10,
+  ): Promise<PaginatedResult<ActaResponse>> {
+    return this.repo.findByAlumno(alumnoId, page, limit);
+  }
 
-@Injectable()
-export class SeguimientoService {
-  constructor(private repo: SeguimientoRepository) {}
-  findByAlumno(alumnoId: number) { return this.repo.findByAlumno(alumnoId); }
-  create(data: any) { return this.repo.create(data); }
-}
-
-@Injectable()
-export class TutoresService {
-  constructor(private repo: TutoresRepository) {}
-  findByAlumno(alumnoId: number) { return this.repo.findByAlumno(alumnoId); }
-  create(data: any) { return this.repo.create(data); }
-  delete(id: number) { return this.repo.delete(id); }
+  create(dto: CrearActaDto) {
+    return this.repo.create(dto);
+  }
 }

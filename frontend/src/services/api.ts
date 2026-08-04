@@ -114,8 +114,13 @@ export const api = {
   updateCargaHoraria: (cursoId: number, materiaId: number, body: { cargaHoraria?: number; modulosPorSemana?: number }) =>
     request<CursoMateria>(`/cursos-materias/${cursoId}/${materiaId}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
-  getInscripciones: (page = 1, limit = 10) =>
-    request<PaginatedResult<Inscripcion>>(`/inscripciones?page=${page}&limit=${limit}`),
+  getInscripciones: (page = 1, limit = 10, filtros?: { anio?: string; division?: string; turno?: string }) => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (filtros?.anio) params.set('anio', filtros.anio);
+    if (filtros?.division) params.set('division', filtros.division);
+    if (filtros?.turno) params.set('turno', filtros.turno);
+    return request<PaginatedResult<Inscripcion>>(`/inscripciones?${params.toString()}`);
+  },
   inscribir: (body: { alumnoId: number; cursoId: number }) =>
     request<Inscripcion>('/inscripciones', { method: 'POST', body: JSON.stringify(body) }),
   desinscribir: (alumnoId: number, cursoId: number) =>
@@ -125,15 +130,20 @@ export const api = {
     request<Asistencia[]>(`/asistencias/alumno/${id}`),
   getAsistenciasCurso: (cursoId: number, fecha: string) =>
     request<Asistencia[]>(`/asistencias/curso/${cursoId}?fecha=${fecha}`),
-  buscarAsistencias: (q: string, fecha: string) =>
-    request<Asistencia[]>(`/asistencias/buscar?q=${encodeURIComponent(q)}&fecha=${fecha}`),
+  buscarAsistencias: (q: string, fecha: string, page = 1, limit = 10, filtros?: { anio?: string; division?: string; turno?: string }) => {
+    const params = new URLSearchParams({ q, fecha, page: String(page), limit: String(limit) });
+    if (filtros?.anio) params.set('anio', filtros.anio);
+    if (filtros?.division) params.set('division', filtros.division);
+    if (filtros?.turno) params.set('turno', filtros.turno);
+    return request<PaginatedResult<Asistencia>>(`/asistencias/buscar?${params.toString()}`);
+  },
   createAsistencia: (body: { alumnoId: number; fecha: string; justificada?: boolean; observacion?: string }) =>
     request<Asistencia>('/asistencias', { method: 'POST', body: JSON.stringify(body) }),
   createAsistenciasMasivo: (body: { alumnoId: number; fecha: string; justificada?: boolean; observacion?: string }[]) =>
-    request<Asistencia[]>('/asistencias/masivo', { method: 'POST', body: JSON.stringify(body) }),
+    request<Asistencia[]>('/asistencias/masivo', { method: 'POST', body: JSON.stringify({ datos: body }) }),
 
-  getCalificaciones: (alumnoId: number) =>
-    request<Calificacion[]>(`/calificaciones/alumno/${alumnoId}`),
+  getCalificaciones: (alumnoId: number, page = 1, limit = 10) =>
+    request<PaginatedResult<Calificacion>>(`/calificaciones/alumno/${alumnoId}?page=${page}&limit=${limit}`),
   getPromedio: (alumnoId: number) =>
     request<{ _avg: { nota: number | null }; _count: number }>(`/calificaciones/alumno/${alumnoId}/promedio`),
   getPromedioPorTrimestre: (alumnoId: number) =>
@@ -145,29 +155,29 @@ export const api = {
   updateCalificacion: (id: number, body: Partial<{ nota: number; trimestre: number; observacion?: string }>) =>
     request<Calificacion>(`/calificaciones/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
 
-  getActas: (alumnoId: number) =>
-    request<Acta[]>(`/actas/alumno/${alumnoId}`),
+  getActas: (alumnoId: number, page = 1, limit = 10) =>
+    request<PaginatedResult<Acta>>(`/actas/alumno/${alumnoId}?page=${page}&limit=${limit}`),
   createActa: (body: { alumnoId: number; tipo: string; descripcion: string; numero: string }) =>
     request<Acta>('/actas', { method: 'POST', body: JSON.stringify(body) }),
-  getAcuerdos: (alumnoId: number) =>
-    request<Acuerdo[]>(`/acuerdos/alumno/${alumnoId}`),
+  getAcuerdos: (alumnoId: number, page = 1, limit = 10) =>
+    request<PaginatedResult<Acuerdo>>(`/acuerdos/alumno/${alumnoId}?page=${page}&limit=${limit}`),
   createAcuerdo: (body: { alumnoId: number; tipo: string; descripcion: string }) =>
     request<Acuerdo>('/acuerdos', { method: 'POST', body: JSON.stringify(body) }),
   updateAcuerdo: (id: number, body: Partial<Acuerdo>) =>
     request<Acuerdo>(`/acuerdos/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
-  getSeguimientos: (alumnoId: number) =>
-    request<Seguimiento[]>(`/seguimientos/alumno/${alumnoId}`),
+  getSeguimientos: (alumnoId: number, page = 1, limit = 10) =>
+    request<PaginatedResult<Seguimiento>>(`/seguimientos/alumno/${alumnoId}?page=${page}&limit=${limit}`),
   createSeguimiento: (body: { alumnoId: number; tipo: string; titulo: string; descripcion: string }) =>
     request<Seguimiento>('/seguimientos', { method: 'POST', body: JSON.stringify(body) }),
-  getTutores: (alumnoId: number) =>
-    request<Tutor[]>(`/tutores/alumno/${alumnoId}`),
+  getTutores: (alumnoId: number, page = 1, limit = 10) =>
+    request<PaginatedResult<Tutor>>(`/tutores/alumno/${alumnoId}?page=${page}&limit=${limit}`),
   createTutor: (body: { alumnoId: number; nombre: string; apellido: string; dni: string }) =>
     request<Tutor>('/tutores', { method: 'POST', body: JSON.stringify(body) }),
   deleteTutor: (id: number) =>
     request<void>(`/tutores/${id}`, { method: 'DELETE' }),
 
-  getLicencias: (docenteId: number) =>
-    request<Licencia[]>(`/licencias/docente/${docenteId}`),
+  getLicencias: (docenteId: number, page = 1, limit = 10) =>
+    request<PaginatedResult<Licencia>>(`/licencias/docente/${docenteId}?page=${page}&limit=${limit}`),
   createLicencia: (body: { docenteId: number; fechaInicio: string; fechaFin: string; codigo: string; motivo: string; observacion?: string }) =>
     request<Licencia>('/licencias', { method: 'POST', body: JSON.stringify(body) }),
   updateLicencia: (id: number, body: Partial<Licencia>) =>
@@ -175,8 +185,14 @@ export const api = {
   deleteLicencia: (id: number) =>
     request<void>(`/licencias/${id}`, { method: 'DELETE' }),
 
-  getModulosSemana: (mes: string, page = 1, limit = 10) =>
-    request<PaginatedResult<ModuloSemanal>>(`/modulos-semana?mes=${mes}&page=${page}&limit=${limit}`),
+  getModulosSemana: (mes: string, page = 1, limit = 10, filtros?: { anio?: string; division?: string; turno?: string; materiaId?: number }) => {
+    const params = new URLSearchParams({ mes, page: String(page), limit: String(limit) });
+    if (filtros?.anio) params.set('anio', filtros.anio);
+    if (filtros?.division) params.set('division', filtros.division);
+    if (filtros?.turno) params.set('turno', filtros.turno);
+    if (filtros?.materiaId) params.set('materiaId', String(filtros.materiaId));
+    return request<PaginatedResult<ModuloSemanal> & { totalPrevistos: number; totalDictados: number }>(`/modulos-semana?${params.toString()}`);
+  },
   upsertModuloSemana: (body: { docenteId: number; cursoId: number; materiaId: number; semanaInicio: string; modulosPrevistos: number; modulosDictados: number; factor?: string; observacion?: string }) =>
     request<ModuloSemanal>('/modulos-semana', { method: 'POST', body: JSON.stringify(body) }),
   updateModuloSemana: (id: number, body: Partial<ModuloSemanal>) =>

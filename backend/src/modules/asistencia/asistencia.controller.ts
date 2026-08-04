@@ -1,6 +1,16 @@
-import { Controller, Get, Post, Param, Query, Body, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  Body,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { AsistenciaService } from './asistencia.service';
 import { CrearAsistenciaDto } from './dto/crear-asistencia.dto';
+import { RegistrarAsistenciasMasivoDto } from './dto/registrar-asistencias-masivo.dto';
+import { FiltrarAsistenciasBuscarDto } from './dto/filtrar-asistencias-buscar.dto';
 
 @Controller('asistencias')
 export class AsistenciaController {
@@ -20,11 +30,18 @@ export class AsistenciaController {
   }
 
   @Get('buscar')
-  buscarPorAlumno(
-    @Query('q') q: string,
-    @Query('fecha') fecha: string,
-  ) {
-    return this.asistenciaService.buscarPorAlumno(q, fecha);
+  buscarPorAlumno(@Query() query: FiltrarAsistenciasBuscarDto) {
+    return this.asistenciaService.buscarPorAlumno(
+      query.q,
+      query.fecha,
+      query.page ?? 1,
+      query.limit ?? 10,
+      {
+        anio: query.anio,
+        division: query.division,
+        turno: query.turno,
+      },
+    );
   }
 
   @Post()
@@ -33,7 +50,7 @@ export class AsistenciaController {
   }
 
   @Post('masivo')
-  registrarMasivo(@Body() datos: CrearAsistenciaDto[]) {
-    return this.asistenciaService.registrarMasivo(datos);
+  registrarMasivo(@Body() dto: RegistrarAsistenciasMasivoDto) {
+    return this.asistenciaService.registrarMasivo(dto.datos);
   }
 }

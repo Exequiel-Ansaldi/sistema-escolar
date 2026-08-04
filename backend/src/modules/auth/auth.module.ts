@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { AuthRepository } from './repositories/auth.repository';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import type { StringValue } from 'ms';
 
 @Module({
   imports: [
@@ -12,7 +13,9 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     JwtModule.registerAsync({
       useFactory: () => ({
         secret: process.env.JWT_SECRET || 'secretKey',
-        signOptions: { expiresIn: (process.env.JWT_EXPIRES_IN || '8h') as any },
+        signOptions: {
+          expiresIn: (process.env.JWT_EXPIRES_IN || '8h') as StringValue,
+        },
       }),
     }),
   ],

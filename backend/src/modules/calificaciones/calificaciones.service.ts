@@ -3,6 +3,7 @@ import { CalificacionesRepository } from './repositories/calificaciones.reposito
 import { AlumnosRepository } from '../alumnos/repositories/alumnos.repository';
 import { MateriasRepository } from '../materias/repositories/materias.repository';
 import { CrearCalificacionDto } from './dto/crear-calificacion.dto';
+import type { PromedioPorMateriaResponse } from './dto/calificacion-response';
 
 @Injectable()
 export class CalificacionesService {
@@ -12,12 +13,15 @@ export class CalificacionesService {
     private materiasRepository: MateriasRepository,
   ) {}
 
-  async findByAlumno(alumnoId: number) {
-    return this.calificacionesRepository.findByAlumno(alumnoId);
+  async findByAlumno(alumnoId: number, page = 1, limit = 10) {
+    return this.calificacionesRepository.findByAlumno(alumnoId, page, limit);
   }
 
   async findByAlumnoYMateria(alumnoId: number, materiaId: number) {
-    return this.calificacionesRepository.findByAlumnoYMateria(alumnoId, materiaId);
+    return this.calificacionesRepository.findByAlumnoYMateria(
+      alumnoId,
+      materiaId,
+    );
   }
 
   async promedio(alumnoId: number) {
@@ -28,13 +32,17 @@ export class CalificacionesService {
     return this.calificacionesRepository.promedioPorTrimestre(alumnoId);
   }
 
-  async promedioPorMateria(alumnoId: number) {
-    const data = await this.calificacionesRepository.promedioPorMateria(alumnoId);
+  async promedioPorMateria(
+    alumnoId: number,
+  ): Promise<PromedioPorMateriaResponse[]> {
+    const data =
+      await this.calificacionesRepository.promedioPorMateria(alumnoId);
     const materias = await this.materiasRepository.findAll(1, 9999);
-    return data.map((d: any) => ({
-      materia: materias.data.find((m: any) => m.id === d.materiaId),
+    return data.map((d) => ({
+      materiaId: d.materiaId,
       promedio: d._avg.nota,
       count: d._count,
+      materia: materias.data.find((m) => m.id === d.materiaId),
     }));
   }
 
