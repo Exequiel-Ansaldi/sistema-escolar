@@ -33,7 +33,7 @@ export class DashboardService {
       const fin = new Date(d);
       fin.setUTCDate(fin.getUTCDate() + 1);
       const sinClases = await this.diasSinClasesRepo.findEntreFechas(d, fin);
-      return sinClases.length === 0;
+      return !sinClases.some((r) => r.cursoId === null);
     };
 
     const fecha = new Date(fechaHoy);
@@ -83,9 +83,9 @@ export class DashboardService {
         dictados: g._sum.modulosDictados ?? 0,
       })),
       porFactor: porFactorRaw.map((g) => ({
-        factor: g.factor ?? 'normal',
-        count: g._count,
-        dictados: g._sum.modulosDictados ?? 0,
+        factor: g.factor,
+        registros: g._count,
+        noDictados: g._sum.cantidad ?? 0,
       })),
     };
 

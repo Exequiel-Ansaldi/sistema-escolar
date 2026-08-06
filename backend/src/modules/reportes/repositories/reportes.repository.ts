@@ -54,9 +54,9 @@ export class ReportesRepository {
         materias: {
           include: { materia: { select: { nombre: true } } },
         },
-        modulosSemanales: {
-          include: { materia: { select: { nombre: true } } },
-          orderBy: { semanaInicio: 'desc' },
+        modulosMensuales: {
+          include: { materia: { select: { nombre: true } }, noDictados: true },
+          orderBy: { mes: 'desc' },
           take: 20,
         },
       },

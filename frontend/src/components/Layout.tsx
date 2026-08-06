@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Menu, X, LayoutDashboard, Users, BookOpen, GraduationCap, BookType, FileText, ClipboardList, Calendar, CalendarDays, Clock, UserCheck, LogOut, Weight } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ROL_LABELS, puedeAcceder } from '../constants/roles';
 
 const menuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
@@ -15,7 +16,7 @@ const menuItems = [
   { label: 'Calificaciones', icon: UserCheck, path: '/calificaciones' },
   { label: 'Actas', icon: FileText, path: '/actas' },
   { label: 'Licencias', icon: Calendar, path: '/licencias' },
-  { label: 'Módulos', icon: Clock, path: '/modulos' },
+  { label: 'Módulos Mensuales', icon: Clock, path: '/modulos-mensuales' },
   { label: 'Calendario', icon: CalendarDays, path: '/calendario' },
 ];
 
@@ -33,7 +34,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-auto shadow-lg`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-linear-to-b from-gray-900 to-gray-800 text-white transform transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 lg:static lg:inset-auto shadow-lg`}>
         <div className="flex items-center justify-between px-5 h-16 border-b border-gray-700/50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-sm font-bold">SG</div>
@@ -43,7 +44,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-          {menuItems.map(item => {
+          {menuItems.filter(item => puedeAcceder(user?.rol, item.path)).map(item => {
             const isActive = pathname === item.path;
             return (
               <Link key={item.path} to={item.path} onClick={() => setSidebarOpen(false)}
@@ -63,7 +64,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium truncate">{user?.nombre} {user?.apellido}</div>
-              <div className="text-xs text-gray-400 truncate">{user?.rol || 'Usuario'}</div>
+              <div className="text-xs text-gray-400 truncate">{user?.rol ? (ROL_LABELS[user.rol] ?? user.rol) : 'Usuario'}</div>
             </div>
             <button onClick={handleLogout} className="p-1.5 rounded-lg hover:bg-gray-700/50 text-gray-400 hover:text-red-300 transition-colors" title="Cerrar sesión"><LogOut size={16} /></button>
           </div>

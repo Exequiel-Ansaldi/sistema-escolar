@@ -7,13 +7,20 @@ import {
   Query,
   Body,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { CalificacionesService } from './calificaciones.service';
 import { CrearCalificacionDto } from './dto/crear-calificacion.dto';
 import { ActualizarCalificacionDto } from './dto/actualizar-calificacion.dto';
 import { FiltrarCalificacionesDto } from './dto/filtrar-calificaciones.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ROLES } from '../../common/constants/roles';
 
 @Controller('calificaciones')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(ROLES.RECTOR, ROLES.PRECEPTOR_MANANA)
 export class CalificacionesController {
   constructor(private calificacionesService: CalificacionesService) {}
 

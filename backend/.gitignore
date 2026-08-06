@@ -3,3 +3,9 @@ node_modules
 .env
 
 /generated/prisma
+
+# AI agent skill folders (installed by tools, not part of the app)
+.agents/
+.claude/
+.windsurf/
+skills-lock.json

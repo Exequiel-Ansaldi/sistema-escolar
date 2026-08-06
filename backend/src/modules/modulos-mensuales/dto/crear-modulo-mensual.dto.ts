@@ -1,13 +1,16 @@
 import {
   IsInt,
-  IsDateString,
+  Matches,
   Min,
   IsOptional,
   IsString,
-  IsIn,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ModuloNoDictadoDto } from './modulo-no-dictado.dto';
 
-export class CrearModuloSemanaDto {
+export class CrearModuloMensualDto {
   @IsInt()
   docenteId: number;
 
@@ -17,8 +20,8 @@ export class CrearModuloSemanaDto {
   @IsInt()
   materiaId: number;
 
-  @IsDateString()
-  semanaInicio: string;
+  @Matches(/^\d{4}-\d{2}$/)
+  mes: string;
 
   @IsInt()
   @Min(0)
@@ -29,9 +32,10 @@ export class CrearModuloSemanaDto {
   modulosDictados: number;
 
   @IsOptional()
-  @IsString()
-  @IsIn(['ausencia', 'licencia', 'paro', 'asamblea', 'feriado', 'otro'])
-  factor?: string;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ModuloNoDictadoDto)
+  noDictados?: ModuloNoDictadoDto[];
 
   @IsOptional()
   @IsString()

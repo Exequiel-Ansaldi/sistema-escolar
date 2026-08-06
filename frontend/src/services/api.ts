@@ -1,6 +1,6 @@
 import type {
   Alumno, Curso, Docente, Materia, Inscripcion, Asistencia, Calificacion,
-  Acta, Acuerdo, Seguimiento, Tutor, Licencia, CursoMateria, ModuloSemanal,
+  Acta, Acuerdo, Seguimiento, Tutor, Licencia, CursoMateria, ModuloMensual,
   DiaSinClases, DashboardResumen, LoginResponse,
 } from '../types';
 
@@ -185,20 +185,20 @@ export const api = {
   deleteLicencia: (id: number) =>
     request<void>(`/licencias/${id}`, { method: 'DELETE' }),
 
-  getModulosSemana: (mes: string, page = 1, limit = 10, filtros?: { anio?: string; division?: string; turno?: string; materiaId?: number }) => {
+  getModulosMensuales: (mes: string, page = 1, limit = 10, filtros?: { anio?: string; division?: string; turno?: string; materiaId?: number }) => {
     const params = new URLSearchParams({ mes, page: String(page), limit: String(limit) });
     if (filtros?.anio) params.set('anio', filtros.anio);
     if (filtros?.division) params.set('division', filtros.division);
     if (filtros?.turno) params.set('turno', filtros.turno);
     if (filtros?.materiaId) params.set('materiaId', String(filtros.materiaId));
-    return request<PaginatedResult<ModuloSemanal> & { totalPrevistos: number; totalDictados: number }>(`/modulos-semana?${params.toString()}`);
+    return request<PaginatedResult<ModuloMensual> & { totalPrevistos: number; totalDictados: number }>(`/modulos-mensuales?${params.toString()}`);
   },
-  upsertModuloSemana: (body: { docenteId: number; cursoId: number; materiaId: number; semanaInicio: string; modulosPrevistos: number; modulosDictados: number; factor?: string; observacion?: string }) =>
-    request<ModuloSemanal>('/modulos-semana', { method: 'POST', body: JSON.stringify(body) }),
-  updateModuloSemana: (id: number, body: Partial<ModuloSemanal>) =>
-    request<ModuloSemanal>(`/modulos-semana/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-  deleteModuloSemana: (id: number) =>
-    request<void>(`/modulos-semana/${id}`, { method: 'DELETE' }),
+  upsertModuloMensual: (body: { docenteId: number; cursoId: number; materiaId: number; mes: string; modulosPrevistos: number; modulosDictados: number; noDictados?: { factor: string; cantidad: number }[]; observacion?: string }) =>
+    request<ModuloMensual>('/modulos-mensuales', { method: 'POST', body: JSON.stringify(body) }),
+  updateModuloMensual: (id: number, body: Partial<ModuloMensual>) =>
+    request<ModuloMensual>(`/modulos-mensuales/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteModuloMensual: (id: number) =>
+    request<void>(`/modulos-mensuales/${id}`, { method: 'DELETE' }),
 
   getDashboard: () =>
     request<DashboardResumen>('/dashboard/resumen'),
@@ -222,13 +222,39 @@ export const api = {
   eliminarDiaSinClases: (id: number) =>
     request<void>(`/dias-sin-clases/${id}`, { method: 'DELETE' }),
 
-  exportPdfCalificaciones: (alumnoId: number) => window.open(`${BASE}/reportes/calificaciones/${alumnoId}`, '_blank'),
+  async descargarPdf(url: string, nombreArchivo: string) {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${BASE}${url}`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: res.statusText }));
+        throw new Error(err.message || 'Error al descargar el reporte');
+      }
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = nombreArchivo;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Error al descargar el reporte');
+    }
+  },
+
+  exportPdfCalificaciones: (alumnoId: number) =>
+    api.descargarPdf(`/reportes/calificaciones/${alumnoId}`, `calificaciones_${alumnoId}.pdf`),
   exportPdfAsistencia: (alumnoId: number, desde?: string, hasta?: string) => {
     const params = new URLSearchParams();
     if (desde) params.set('desde', desde);
     if (hasta) params.set('hasta', hasta);
     const qs = params.toString();
-    window.open(`${BASE}/reportes/asistencia/${alumnoId}${qs ? `?${qs}` : ''}`, '_blank');
+    return api.descargarPdf(`/reportes/asistencia/${alumnoId}${qs ? `?${qs}` : ''}`, `asistencia_${alumnoId}.pdf`);
   },
-  exportPdfCurso: (cursoId: number) => window.open(`${BASE}/reportes/curso/${cursoId}`, '_blank'),
+  exportPdfCurso: (cursoId: number) =>
+    api.descargarPdf(`/reportes/curso/${cursoId}`, `curso_${cursoId}.pdf`),
 };

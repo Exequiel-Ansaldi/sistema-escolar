@@ -6,13 +6,20 @@ import {
   Query,
   Body,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { AsistenciaService } from './asistencia.service';
 import { CrearAsistenciaDto } from './dto/crear-asistencia.dto';
 import { RegistrarAsistenciasMasivoDto } from './dto/registrar-asistencias-masivo.dto';
 import { FiltrarAsistenciasBuscarDto } from './dto/filtrar-asistencias-buscar.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ROLES } from '../../common/constants/roles';
 
 @Controller('asistencias')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(ROLES.RECTOR, ROLES.PRECEPTOR_MANANA)
 export class AsistenciaController {
   constructor(private asistenciaService: AsistenciaService) {}
 

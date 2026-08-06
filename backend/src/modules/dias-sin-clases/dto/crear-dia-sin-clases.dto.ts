@@ -4,7 +4,7 @@ export class CrearDiaSinClasesDto {
   @IsDateString()
   fecha: string;
 
-  @IsIn(['feriado', 'paro'])
+  @IsIn(['feriado', 'paro', 'asamblea'])
   tipo: string;
 
   @IsOptional()

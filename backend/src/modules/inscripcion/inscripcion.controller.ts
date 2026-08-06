@@ -7,12 +7,19 @@ import {
   Param,
   Query,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { InscripcionService } from './inscripcion.service';
 import { CrearInscripcionDto } from './dto/crear-inscripcion.dto';
 import { FiltrarInscripcionesDto } from './dto/filtrar-inscripciones.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ROLES } from '../../common/constants/roles';
 
 @Controller('inscripciones')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(ROLES.RECTOR, ROLES.SECRETARIA_ALUMNADO)
 export class InscripcionController {
   constructor(private inscripcionService: InscripcionService) {}
 

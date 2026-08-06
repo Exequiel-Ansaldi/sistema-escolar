@@ -8,13 +8,20 @@ import {
   Body,
   Query,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { DocentesService } from './docentes.service';
 import { CrearDocenteDto } from './dto/crear-docente.dto';
 import { ActualizarDocenteDto } from './dto/actualizar-docente.dto';
 import { FiltrarDocentesDto } from './dto/filtrar-docentes.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ROLES } from '../../common/constants/roles';
 
 @Controller('docentes')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(ROLES.RECTOR, ROLES.SECRETARIA_PERSONAL)
 export class DocentesController {
   constructor(private docentesService: DocentesService) {}
 

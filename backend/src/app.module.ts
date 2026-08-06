@@ -17,7 +17,7 @@ import { AcuerdosModule } from './modules/acuerdos/acuerdos.module';
 import { SeguimientosModule } from './modules/seguimientos/seguimientos.module';
 import { TutoresModule } from './modules/tutores/tutores.module';
 import { LicenciasModule } from './modules/licencias/licencias.module';
-import { ModulosSemanaModule } from './modules/modulos-semana/modulos-semana.module';
+import { ModulosMensualesModule } from './modules/modulos-mensuales/modulos-mensuales.module';
 import { DiasSinClasesModule } from './modules/dias-sin-clases/dias-sin-clases.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
@@ -44,7 +44,7 @@ import appConfig from './config/app.config';
     SeguimientosModule,
     TutoresModule,
     LicenciasModule,
-    ModulosSemanaModule,
+    ModulosMensualesModule,
     DiasSinClasesModule,
     DashboardModule,
     ReportesModule,

@@ -23,7 +23,7 @@ export class DiasSinClasesRepository {
       if (desde) where.fecha.gte = desde;
       if (hasta) where.fecha.lte = hasta;
     }
-    if (cursoId) where.cursoId = cursoId;
+    if (cursoId) where.OR = [{ cursoId }, { cursoId: null }];
     const [rows, total] = await Promise.all([
       this.prisma.diaSinClases.findMany({
         where,

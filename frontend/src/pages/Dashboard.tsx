@@ -45,7 +45,7 @@ export default function Dashboard() {
         <Card title="Docentes" value={data?.totales?.docentes ?? 0} icon={<GraduationCap size={24} />} color="purple" to="/docentes" />
         <Card title="Cursos" value={data?.totales?.cursos ?? 0} icon={<BookOpen size={24} />} color="orange" to="/cursos" />
         <Card title={`Asistencia ${fecha ?? ''}`} value={presentes ?? 0} icon={<UserCheck size={24} />} color="green" to="/asistencias" />
-        <Card title="Módulos" value={`${data?.modulos?.eficiencia ?? 0}%`} icon={<Clock size={24} />} color="purple" to="/modulos" />
+        <Card title="Módulos" value={`${data?.modulos?.eficiencia ?? 0}%`} icon={<Clock size={24} />} color="purple" to="/modulos-mensuales" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -129,15 +129,15 @@ export default function Dashboard() {
 
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
             <h2 className="font-semibold text-gray-800 mb-1">Módulos por Factor</h2>
-            <p className="text-xs text-gray-400 mb-2">Distribución según causa de ausencia</p>
+            <p className="text-xs text-gray-400 mb-2">Módulos no dictados según causa</p>
             {data?.modulos?.porFactor?.length > 0 ? (
               <div className="space-y-1">
                 {data.modulos.porFactor.map((f: any) => (
                   <div key={f.factor} className="flex items-center justify-between py-1.5 border-b border-gray-100 last:border-0">
                     <span className="text-sm text-gray-500 capitalize">{f.factor}</span>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-400">{f.count} registros</span>
-                      <span className="font-bold text-sm text-gray-800">{f.dictados} mód.</span>
+                      <span className="text-xs text-gray-400">{f.registros} registros</span>
+                      <span className="font-bold text-sm text-gray-800">{f.noDictados} no dict.</span>
                     </div>
                   </div>
                 ))}

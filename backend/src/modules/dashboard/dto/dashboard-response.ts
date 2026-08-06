@@ -18,7 +18,7 @@ export interface ModulosResumenResponse {
   totalDictados: number;
   eficiencia: number;
   porMateria: { nombre: string; previstos: number; dictados: number }[];
-  porFactor: { factor: string; count: number; dictados: number }[];
+  porFactor: { factor: string; registros: number; noDictados: number }[];
 }
 
 export interface DashboardResumenResponse {

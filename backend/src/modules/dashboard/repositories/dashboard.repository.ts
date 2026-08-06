@@ -29,25 +29,41 @@ export class DashboardRepository {
   }
 
   aggregateModulos() {
-    return this.prisma.moduloSemanal.aggregate({
+    return this.prisma.moduloMensual.aggregate({
       _sum: { modulosPrevistos: true, modulosDictados: true },
     });
   }
 
   modulosPorMateria() {
-    const treinta = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    return this.prisma.moduloSemanal.groupBy({
+    const now = new Date();
+    const inicioMes = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    const inicioMesSiguiente = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+    );
+    return this.prisma.moduloMensual.groupBy({
       by: ['materiaId'],
-      where: { semanaInicio: { gte: treinta } },
+      where: { mes: { gte: inicioMes, lt: inicioMesSiguiente } },
       _sum: { modulosPrevistos: true, modulosDictados: true },
       orderBy: { materiaId: 'asc' },
     });
   }
 
   modulosPorFactor() {
-    return this.prisma.moduloSemanal.groupBy({
+    const now = new Date();
+    const inicioMes = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    const inicioMesSiguiente = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+    );
+    return this.prisma.moduloNoDictado.groupBy({
       by: ['factor'],
-      _sum: { modulosDictados: true },
+      where: {
+        moduloMensual: { mes: { gte: inicioMes, lt: inicioMesSiguiente } },
+      },
+      _sum: { cantidad: true },
       _count: true,
       orderBy: { factor: 'asc' },
     });

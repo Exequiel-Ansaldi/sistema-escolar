@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { puedeAcceder, rutaInicial } from './constants/roles';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -9,13 +10,21 @@ import { AsistenciasPage } from './pages/AsistenciasPage';
 import { CalificacionesPage } from './pages/CalificacionesPage';
 import { ActasPage } from './pages/ActasPage';
 import { LicenciasPage } from './pages/LicenciasPage';
-import { ModulosPage } from './pages/ModulosPage';
+import { ModulosMensualesPage } from './pages/ModulosMensualesPage';
 import { CargaHorariaPage } from './pages/CargaHorariaPage';
 import { CalendarioPage } from './pages/CalendarioPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth();
-  return token ? <Layout>{children}</Layout> : <Navigate to="/login" replace />;
+  const { token, user } = useAuth();
+  const { pathname } = useLocation();
+  if (!token) return <Navigate to="/login" replace />;
+  if (!puedeAcceder(user?.rol, pathname)) return <Navigate to={rutaInicial(user?.rol)} replace />;
+  return <Layout>{children}</Layout>;
+}
+
+function CatchAll() {
+  const { token, user } = useAuth();
+  return <Navigate to={token ? rutaInicial(user?.rol) : '/login'} replace />;
 }
 
 export default function App() {
@@ -34,10 +43,10 @@ export default function App() {
           <Route path="/calificaciones" element={<ProtectedRoute><CalificacionesPage /></ProtectedRoute>} />
           <Route path="/actas" element={<ProtectedRoute><ActasPage /></ProtectedRoute>} />
           <Route path="/licencias" element={<ProtectedRoute><LicenciasPage /></ProtectedRoute>} />
-          <Route path="/modulos" element={<ProtectedRoute><ModulosPage /></ProtectedRoute>} />
+          <Route path="/modulos-mensuales" element={<ProtectedRoute><ModulosMensualesPage /></ProtectedRoute>} />
           <Route path="/carga-horaria" element={<ProtectedRoute><CargaHorariaPage /></ProtectedRoute>} />
           <Route path="/calendario" element={<ProtectedRoute><CalendarioPage /></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<CatchAll />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

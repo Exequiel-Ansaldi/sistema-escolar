@@ -62,7 +62,7 @@ model Curso {
 
   inscripciones    Inscripcion[]
   materias         CursoMateria[]
-  modulosSemanales ModuloSemanal[]
+  modulosMensuales ModuloMensual[]
   diasSinClases    DiaSinClases[]
 
   @@map("cursos")
@@ -94,7 +94,7 @@ model Docente {
 
   materias         DocenteMateria[]
   licencias        Licencia[]
-  modulosSemanales ModuloSemanal[]
+  modulosMensuales ModuloMensual[]
 
   @@map("docentes")
 }
@@ -106,7 +106,7 @@ model Materia {
   docentes         DocenteMateria[]
   calificaciones   Calificacion[]
   cursos           CursoMateria[]
-  modulosSemanales ModuloSemanal[]
+  modulosMensuales ModuloMensual[]
 
   @@map("materias")
 }
@@ -230,29 +230,42 @@ model Licencia {
   @@map("licencias")
 }
 
-model ModuloSemanal {
-  id               Int      @id @default(autoincrement())
-  docenteId        Int      @map("docente_id")
-  cursoId          Int      @map("curso_id")
-  materiaId        Int      @map("materia_id")
-  semanaInicio     DateTime @map("semana_inicio")
-  modulosPrevistos Int      @map("modulos_previstos")
-  modulosDictados  Int      @map("modulos_dictados")
-  factor           String?
+model ModuloMensual {
+  id               Int               @id @default(autoincrement())
+  docenteId        Int               @map("docente_id")
+  cursoId          Int               @map("curso_id")
+  materiaId        Int               @map("materia_id")
+  mes              DateTime          @map("mes")
+  modulosPrevistos Int               @map("modulos_previstos")
+  modulosDictados  Int               @map("modulos_dictados")
   observacion      String?
 
-  docente Docente @relation(fields: [docenteId], references: [id])
-  curso   Curso   @relation(fields: [cursoId], references: [id])
-  materia Materia @relation(fields: [materiaId], references: [id])
+  docente   Docente           @relation(fields: [docenteId], references: [id])
+  curso     Curso             @relation(fields: [cursoId], references: [id])
+  materia   Materia           @relation(fields: [materiaId], references: [id])
+  noDictados ModuloNoDictado[]
 
-  @@unique([cursoId, materiaId, docenteId, semanaInicio])
-  @@map("modulos_semanales")
+  @@unique([cursoId, materiaId, docenteId, mes])
+  @@map("modulos_mensuales")
+}
+
+model ModuloNoDictado {
+  id               Int            @id @default(autoincrement())
+  moduloMensualId  Int            @map("modulo_mensual_id")
+  factor           String
+  cantidad         Int
+  observacion      String?
+
+  moduloMensual ModuloMensual @relation(fields: [moduloMensualId], references: [id], onDelete: Cascade)
+
+  @@unique([moduloMensualId, factor])
+  @@map("modulos_no_dictados")
 }
 
 model DiaSinClases {
   id          Int      @id @default(autoincrement())
   fecha       DateTime
-  tipo        String   // "feriado" | "paro"
+  tipo        String   // "feriado" | "paro" | "asamblea"
   descripcion String?
   cursoId     Int?     @map("curso_id")
   createdAt   DateTime @default(now())

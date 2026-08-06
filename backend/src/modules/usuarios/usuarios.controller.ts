@@ -8,13 +8,20 @@ import {
   Body,
   ParseIntPipe,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
 import { FiltrarUsuariosDto } from './dto/filtrar-usuarios.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ROLES } from '../../common/constants/roles';
 
 @Controller('usuarios')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(ROLES.RECTOR)
 export class UsuariosController {
   constructor(private usuariosService: UsuariosService) {}
 

@@ -6,12 +6,19 @@ import {
   Query,
   Body,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { ActasService } from './actas.service';
 import { CrearActaDto } from './dto/crear-acta.dto';
 import { FiltrarActasDto } from './dto/filtrar-actas.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ROLES } from '../../common/constants/roles';
 
 @Controller('actas')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(ROLES.RECTOR, ROLES.ASESORIA_PEDAGOGICA)
 export class ActasController {
   constructor(private service: ActasService) {}
 

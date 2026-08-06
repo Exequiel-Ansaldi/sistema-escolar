@@ -89,7 +89,8 @@ async function main() {
   console.log('🌱 Iniciando seed realista (determinista)...\n');
 
   // ── Limpieza (ordenado por dependencias) ──
-  await prisma.moduloSemanal.deleteMany();
+  await prisma.moduloMensual.deleteMany();
+  await prisma.moduloNoDictado.deleteMany();
   await prisma.licencia.deleteMany();
   await prisma.docenteMateria.deleteMany();
   await prisma.cursoMateria.deleteMany();
@@ -109,13 +110,31 @@ async function main() {
   await prisma.rol.deleteMany();
 
   // ── Roles y usuarios ──
-  const adminRol = await prisma.rol.create({ data: { nombreRol: 'admin' } });
-  const preceptorRol = await prisma.rol.create({ data: { nombreRol: 'preceptor' } });
-  const hash = await bcrypt.hash('admin123', 10);
-  const hashPre = await bcrypt.hash('preceptor123', 10);
-  await prisma.usuario.create({ data: { nombreUsuario: 'admin', contrasena: hash, nombre: 'Admin', apellido: 'Sistema', rolId: adminRol.id } });
-  await prisma.usuario.create({ data: { nombreUsuario: 'preceptor', contrasena: hashPre, nombre: 'Carlos', apellido: 'López', rolId: preceptorRol.id } });
-  console.log('✅ Roles y usuarios: admin (admin/admin123), preceptor (preceptor/preceptor123)');
+  const rolData = [
+    { nombreRol: 'admin', nombreUsuario: 'admin', contrasena: 'admin123', nombre: 'Admin', apellido: 'Sistema' },
+    { nombreRol: 'rector', nombreUsuario: 'rector', contrasena: 'rector123', nombre: 'Marcelo', apellido: 'Gómez' },
+    { nombreRol: 'vicerrector', nombreUsuario: 'vicerrector', contrasena: 'vicerrector123', nombre: 'Silvia', apellido: 'Pérez' },
+    { nombreRol: 'secretaria_personal', nombreUsuario: 'secretaria_personal', contrasena: 'secretaria_personal123', nombre: 'Rosa', apellido: 'Fernández' },
+    { nombreRol: 'secretaria_alumnado', nombreUsuario: 'secretaria_alumnado', contrasena: 'secretaria_alumnado123', nombre: 'Patricia', apellido: 'González' },
+    { nombreRol: 'asesoria_pedagogica', nombreUsuario: 'asesoria_pedagogica', contrasena: 'asesoria_pedagogica123', nombre: 'Carolina', apellido: 'Díaz' },
+    { nombreRol: 'preceptor_manana', nombreUsuario: 'preceptor_manana', contrasena: 'preceptor_manana123', nombre: 'Carlos', apellido: 'López' },
+  ];
+  const credenciales: string[] = [];
+  for (const r of rolData) {
+    const rol = await prisma.rol.create({ data: { nombreRol: r.nombreRol } });
+    credenciales.push(`${r.nombreUsuario}/${r.contrasena}`);
+    const hash = await bcrypt.hash(r.contrasena, 10);
+    await prisma.usuario.create({
+      data: {
+        nombreUsuario: r.nombreUsuario,
+        contrasena: hash,
+        nombre: r.nombre,
+        apellido: r.apellido,
+        rolId: rol.id,
+      },
+    });
+  }
+  console.log(`✅ Roles y usuarios: ${credenciales.join(', ')}`);
 
   // ── Cursos (1°-6° × A/B/C = 18) ──
   const cursos: any[] = [];
@@ -128,7 +147,13 @@ async function main() {
       }));
     }
   }
-  console.log(`✅ Cursos: ${cursos.length} (1°-6° × A/B/C, orientaciones: Ciclo Básico / Humanidades / Matemáticas)`);
+  // ── Cursos turno noche (4°-6° N) ──
+  for (let anio = 4; anio <= 6; anio++) {
+    cursos.push(await prisma.curso.create({
+      data: { anio, division: 'N', turno: 'noche', orientacion: 'Contabilidad', cicloLectivo: 2026 },
+    }));
+  }
+  console.log(`✅ Cursos: ${cursos.length} (1°-6° × A/B/C + turno noche, orientaciones: Ciclo Básico / Humanidades / Matemáticas / Contabilidad)`);
 
   // ── Materias (25) ──
   const materias = [];
@@ -239,9 +264,10 @@ async function main() {
       { fecha: new Date(Date.UTC(2026, 6, 9)), tipo: 'feriado', descripcion: 'Día de la Independencia' },
       { fecha: new Date(Date.UTC(2026, 6, 15)), tipo: 'paro', descripcion: 'Paro docente nacional' },
       { fecha: new Date(Date.UTC(2026, 6, 22)), tipo: 'paro', descripcion: 'Paro en la división', cursoId: id4C },
+      { fecha: new Date(Date.UTC(2026, 6, 23)), tipo: 'asamblea', descripcion: 'Asamblea de docentes de la división', cursoId: id4C },
     ],
   });
-  console.log('✅ Días sin clases: feriado 09/07, paro 15/07, paro 22/07 (4°C)');
+  console.log('✅ Días sin clases: feriado 09/07, paro 15/07, paro 22/07 y asamblea 23/07 (4°C)');
 
   // ── Asistencias (solo inasistencias, días hábiles de julio) ──
   const diasClase: Date[] = [];
@@ -257,6 +283,7 @@ async function main() {
     for (let i = 0; i < alumnos.length; i++) {
       if (alumnos[i].estado !== 'activo') continue;
       if (fecha.getUTCDate() === 22 && alumnoCurso[i] === 11) continue;
+      if (fecha.getUTCDate() === 23 && alumnoCurso[i] === 11) continue;
       if (rand() < 0.10) {
         const justificado = rand() < 0.40;
         asistenciaRows.push({
@@ -321,46 +348,87 @@ async function main() {
   }
   console.log(`✅ Calificaciones: ${calificaciones.length} (T1+T2 completos, T3 parcial)`);
 
-  // ── Módulos semanales (5 semanas de julio 2026) ──
-  const semanas = [
-    new Date(Date.UTC(2026, 6, 29)),
-    new Date(Date.UTC(2026, 7, 6)),
-    new Date(Date.UTC(2026, 7, 13)),
-    new Date(Date.UTC(2026, 7, 20)),
-    new Date(Date.UTC(2026, 7, 27)),
+  // ── Módulos mensuales (agosto a diciembre 2026) ──
+  const meses = [
+    new Date(Date.UTC(2026, 7, 1)),
+    new Date(Date.UTC(2026, 8, 1)),
+    new Date(Date.UTC(2026, 9, 1)),
+    new Date(Date.UTC(2026, 10, 1)),
+    new Date(Date.UTC(2026, 11, 1)),
   ];
   const factores = ['ausencia', 'licencia', 'paro', 'asamblea', 'feriado'];
   const moduloRows: any[] = [];
+  const moduloNoDictadoPlan: {
+    rowIndex: number;
+    noDictados: { factor: string; cantidad: number }[];
+  }[] = [];
   for (const curso of cursos) {
     for (const { materiaId: mid, modulosPorSemana } of cursoMaterias.get(curso.id)!) {
       const docenteId = moduloDocentes.get(`${curso.id}:${mid}`)!;
-      for (const semanaInicio of semanas) {
-        const previstos = modulosPorSemana;
+      for (const mes of meses) {
+        const previstos = modulosPorSemana * 4;
         let dictados = previstos;
-        let factor: string | null = null;
+        let noDictados: { factor: string; cantidad: number }[] = [];
         let observacion: string | null = null;
         if (rand() < 0.15) {
-          dictados = Math.max(0, previstos - randomInt(1, 3));
-          factor = pick(factores);
+          dictados = Math.max(0, previstos - randomInt(1, 6));
+          const gap = previstos - dictados;
+          const cantidad1 = randomInt(1, Math.max(1, gap));
+          const cantidad2 = gap - cantidad1;
+          const factor1 = pick(factores);
+          noDictados.push({ factor: factor1, cantidad: cantidad1 });
+          if (cantidad2 > 0) {
+            const factor2 = pick(factores.filter((f) => f !== factor1));
+            noDictados.push({ factor: factor2, cantidad: cantidad2 });
+          }
           observacion = 'Módulos no dictados';
         }
+        moduloNoDictadoPlan.push({ rowIndex: moduloRows.length, noDictados });
         moduloRows.push({
           docenteId,
           cursoId: curso.id,
           materiaId: mid,
-          semanaInicio,
+          mes,
           modulosPrevistos: previstos,
           modulosDictados: dictados,
-          factor,
           observacion,
         });
       }
     }
   }
   for (let i = 0; i < moduloRows.length; i += 1000) {
-    await prisma.moduloSemanal.createMany({ data: moduloRows.slice(i, i + 1000) });
+    await prisma.moduloMensual.createMany({ data: moduloRows.slice(i, i + 1000) });
   }
-  console.log(`✅ Módulos semanales: ${moduloRows.length} (${cursos.length * 3} combos × ${semanas.length} semanas)`);
+  console.log(`✅ Módulos mensuales: ${moduloRows.length} (${cursos.length * 3} combos × ${meses.length} meses)`);
+
+  const creados = await prisma.moduloMensual.findMany({
+    where: { mes: { in: meses } },
+  });
+  const mapaCreados = new Map(
+    creados.map((c) => [
+      `${c.cursoId}:${c.materiaId}:${c.docenteId}:${c.mes.toISOString()}`,
+      c.id,
+    ]),
+  );
+  const noDictadoRows: {
+    moduloMensualId: number;
+    factor: string;
+    cantidad: number;
+  }[] = [];
+  for (const plan of moduloNoDictadoPlan) {
+    if (!plan.noDictados.length) continue;
+    const row = moduloRows[plan.rowIndex];
+    const key = `${row.cursoId}:${row.materiaId}:${row.docenteId}:${row.mes.toISOString()}`;
+    const id = mapaCreados.get(key);
+    if (id === undefined) continue;
+    for (const nd of plan.noDictados) {
+      noDictadoRows.push({ moduloMensualId: id, factor: nd.factor, cantidad: nd.cantidad });
+    }
+  }
+  for (let i = 0; i < noDictadoRows.length; i += 1000) {
+    await prisma.moduloNoDictado.createMany({ data: noDictadoRows.slice(i, i + 1000) });
+  }
+  console.log(`✅ Módulos no dictados: ${noDictadoRows.length}`);
 
   // ── Licencias ──
   const licenciaRows = Array.from({ length: 8 }, (_, i) => {
@@ -458,7 +526,12 @@ async function main() {
   console.log('\n🎉 Seed completado exitosamente');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🔑 admin / admin123');
-  console.log('🔑 preceptor / preceptor123');
+  console.log('🔑 rector / rector123');
+  console.log('🔑 vicerrector / vicerrector123');
+  console.log('🔑 secretaria_personal / secretaria_personal123');
+  console.log('🔑 secretaria_alumnado / secretaria_alumnado123');
+  console.log('🔑 asesoria_pedagogica / asesoria_pedagogica123');
+  console.log('🔑 preceptor_manana / preceptor_manana123');
 }
 
 main()

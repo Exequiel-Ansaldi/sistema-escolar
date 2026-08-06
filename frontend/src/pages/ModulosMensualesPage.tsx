@@ -2,28 +2,15 @@ import { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { DataTable, FormModal, Select, Input, Button, Badge, Toast, ConfirmModal, Pagination } from '../components/ui';
 
-const FACTORES = ['', 'ausencia', 'licencia', 'paro', 'asamblea', 'feriado', 'otro'];
+const FACTORES = ['ausencia', 'licencia', 'paro', 'asamblea', 'feriado', 'otro'];
 
-function getMonday(d: Date): Date {
-  const date = new Date(d);
-  const day = date.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  date.setDate(date.getDate() + diff);
-  date.setHours(0, 0, 0, 0);
-  return date;
+function formatMes(mes: string): string {
+  const [y, m] = mes.split('-').map(Number);
+  const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return `${MONTHS[m - 1]} ${y}`;
 }
 
-function formatSemana(s: string): string {
-  const d = new Date(s);
-  const fin = new Date(d);
-  fin.setDate(fin.getDate() + 4);
-  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
-  return `${d.toLocaleDateString('es', opts)} - ${fin.toLocaleDateString('es', opts)}`;
-}
-
-const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-
-export function ModulosPage() {
+export function ModulosMensualesPage() {
   const [cursos, setCursos] = useState<any[]>([]);
   const [docentes, setDocentes] = useState<any[]>([]);
   const [materias, setMaterias] = useState<any[]>([]);
@@ -42,6 +29,7 @@ export function ModulosPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [noDictados, setNoDictados] = useState<{ factor: string; cantidad: number }[]>([]);
 
   const now = new Date();
   const [mesActual, setMesActual] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
@@ -59,7 +47,7 @@ export function ModulosPage() {
     setLoading(true);
     (async () => {
       try {
-        const r = await api.getModulosSemana(mesActual, page, 10, {
+        const r = await api.getModulosMensuales(mesActual, page, 10, {
           anio: anioFilter || undefined,
           division: divisionFilter || undefined,
           turno: turnoFilter || undefined,
@@ -91,37 +79,60 @@ export function ModulosPage() {
   const nextMonth = () => { setPage(1); setMesActual(m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`); };
 
   const save = async (body: any) => {
+    const previstos = Number(body.modulosPrevistos);
+    const dictados = Number(body.modulosDictados);
+    const validos = noDictados.filter(n => n.factor);
     const data = {
       docenteId: Number(body.docenteId), cursoId: Number(body.cursoId), materiaId: Number(body.materiaId),
-      semanaInicio: new Date(body.semanaInicio).toISOString(),
-      modulosPrevistos: Number(body.modulosPrevistos),
-      modulosDictados: Number(body.modulosDictados),
-      factor: body.factor || null,
+      mes: body.mes,
+      modulosPrevistos: previstos,
+      modulosDictados: dictados,
+      noDictados: validos.map(n => ({ factor: n.factor, cantidad: Math.max(1, Number(n.cantidad) || 0) })),
       observacion: body.observacion || null,
     };
+    const suma = data.noDictados.reduce((acc, n) => acc + n.cantidad, 0);
+    if (dictados + suma !== previstos) {
+      setToast({
+        message: `La suma de módulos no dictados (${suma}) no coincide con la diferencia previstos - dictados (${previstos - dictados})`,
+        type: 'error',
+      });
+      return;
+    }
     try {
-      if (editing) await api.updateModuloSemana(editing.id, data);
-      else await api.upsertModuloSemana(data);
+      if (editing) await api.updateModuloMensual(editing.id, data);
+      else await api.upsertModuloMensual(data);
       setToast({ message: editing ? 'Registro actualizado' : 'Registro creado', type: 'success' });
-      setShowForm(false); setEditing(null); setRefreshKey(k => k + 1);
+      setShowForm(false); setEditing(null); setNoDictados([]); setRefreshKey(k => k + 1);
     } catch (err: any) { setToast({ message: err.message, type: 'error' }); }
   };
+
+  const openNuevo = () => { setEditing(null); setNoDictados([]); setShowForm(true); };
+  const openEdicion = (r: any) => {
+    setEditing(r);
+    setNoDictados((r.noDictados ?? []).map((n: any) => ({ factor: n.factor, cantidad: n.cantidad })));
+    setShowForm(true);
+  };
+  const closeForm = () => { setShowForm(false); setEditing(null); setNoDictados([]); };
+  const updateNoDictado = (i: number, campo: 'factor' | 'cantidad', valor: string | number) => {
+    setNoDictados(prev => prev.map((n, idx) => idx === i ? { ...n, [campo]: valor } : n));
+  };
+  const removeNoDictado = (i: number) => setNoDictados(prev => prev.filter((_, idx) => idx !== i));
 
   const executeDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
-    try { await api.deleteModuloSemana(deleteTarget.id); setToast({ message: 'Registro eliminado', type: 'success' }); setDeleteTarget(null); setRefreshKey(k => k + 1); } catch (err: any) { setToast({ message: err.message, type: 'error' }); } finally { setDeleting(false); }
+    try { await api.deleteModuloMensual(deleteTarget.id); setToast({ message: 'Registro eliminado', type: 'success' }); setDeleteTarget(null); setRefreshKey(k => k + 1); } catch (err: any) { setToast({ message: err.message, type: 'error' }); } finally { setDeleting(false); }
   };
 
   return (
     <div className="space-y-5 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Módulos Semanales</h1>
-          <p className="text-slate-500 text-sm mt-1">Registro semanal de módulos (40 min c/u) por curso</p>
+          <h1 className="text-2xl font-bold text-slate-800">Módulos Mensuales</h1>
+          <p className="text-slate-500 text-sm mt-1">Registro mensual de módulos (40 min c/u) por curso</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => { setEditing(null); setShowForm(true); }} variant="primary">+ Registrar</Button>
+          <Button onClick={openNuevo} variant="primary">+ Registrar</Button>
         </div>
       </div>
 
@@ -129,7 +140,7 @@ export function ModulosPage() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Button onClick={prevMonth} variant="secondary">&lt;</Button>
-            <span className="font-semibold text-slate-700 min-w-35 text-center">{MONTHS[m - 1]} {y}</span>
+            <span className="font-semibold text-slate-700 min-w-35 text-center">{formatMes(mesActual)}</span>
             <Button onClick={nextMonth} variant="secondary">&gt;</Button>
           </div>
           <span className="text-slate-300">|</span>
@@ -168,19 +179,31 @@ export function ModulosPage() {
       )}
 
       <DataTable columns={[
-        { key: 'semanaInicio', label: 'Semana', render: (v: string) => formatSemana(v) },
+        { key: 'mes', label: 'Mes', render: (v: string) => formatMes(v) },
         { key: 'curso', label: 'Curso', render: (_: any, r: any) => r.curso ? `${r.curso.anio}°${r.curso.division} - ${r.curso.turno}` : '-' },
         { key: 'materia', label: 'Materia', render: (_: any, r: any) => r.materia?.nombre },
         { key: 'docente', label: 'Docente', render: (_: any, r: any) => r.docente ? `${r.docente.apellido}, ${r.docente.nombre}` : '-' },
         { key: 'modulosPrevistos', label: 'Previstos' },
         { key: 'modulosDictados', label: 'Dictados' },
-        { key: 'factor', label: 'Factor', render: (v: string) => v ? <Badge variant={v === 'ausencia' || v === 'licencia' ? 'danger' : 'warning'}>{v}</Badge> : <Badge variant="success">normal</Badge> },
+        { key: 'noDictados', label: 'No dictados por factor', render: (_: any, r: any) => {
+          const nd = r.noDictados ?? [];
+          if (!nd.length) return <Badge variant="success">normal</Badge>;
+          return (
+            <div className="flex flex-wrap gap-1">
+              {nd.map((n: any) => (
+                <Badge key={n.id} variant={n.factor === 'ausencia' || n.factor === 'licencia' ? 'danger' : 'warning'}>
+                  {n.factor} ({n.cantidad})
+                </Badge>
+              ))}
+            </div>
+          );
+        } },
         { key: 'observacion', label: 'Obs.', render: (v: string) => v ?? '-' },
-      ]} data={registros} loading={loading} onEdit={(r) => { setEditing(r); setShowForm(true); }} onDelete={(r) => setDeleteTarget(r)} />
+      ]} data={registros} loading={loading} onEdit={openEdicion} onDelete={(r) => setDeleteTarget(r)} />
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
-      {showForm && <FormModal title={editing ? 'Editar Registro' : 'Registrar Módulos Semanales'} onClose={() => { setShowForm(false); setEditing(null); }}>
-        <form onSubmit={e => { e.preventDefault(); const form = new FormData(e.currentTarget); const fecha = form.get('semanaInicio') as string; form.set('semanaInicio', getMonday(new Date(fecha)).toISOString().split('T')[0]); save(Object.fromEntries(form)); }}>
+      {showForm && <FormModal title={editing ? 'Editar Registro' : 'Registrar Módulos Mensuales'} onClose={closeForm}>
+        <form onSubmit={e => { e.preventDefault(); const form = new FormData(e.currentTarget); save(Object.fromEntries(form)); }}>
           <Select label="Curso" name="cursoId" defaultValue={editing?.cursoId ?? ''}>
             <option value="">Seleccionar...</option>
             {cursos.map(c => <option key={c.id} value={c.id}>{c.anio}°{c.division} - {c.turno}</option>)}
@@ -193,20 +216,30 @@ export function ModulosPage() {
             <option value="">Seleccionar...</option>
             {materias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
           </Select>
-          <Input label="Semana (cualquier día)" name="semanaInicio" type="date" defaultValue={editing?.semanaInicio?.split('T')[0] ?? new Date().toISOString().split('T')[0]} required />
+          <Input label="Mes" name="mes" type="month" defaultValue={editing?.mes?.slice(0, 7) ?? mesActual} required />
           <Input label="Módulos Previstos" name="modulosPrevistos" type="number" min={0} defaultValue={editing?.modulosPrevistos ?? ''} required />
           <Input label="Módulos Dictados" name="modulosDictados" type="number" min={0} defaultValue={editing?.modulosDictados ?? ''} required />
-          <Select label="Factor (si no se dictaron todos)" name="factor" defaultValue={editing?.factor ?? ''}>
-            <option value="">Normal</option>
-            {FACTORES.filter(f => f).map(f => <option key={f} value={f}>{f}</option>)}
-          </Select>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Módulos no dictados por factor</label>
+            {noDictados.map((nd, i) => (
+              <div key={i} className="flex items-center gap-2 mb-2">
+                <select value={nd.factor} onChange={e => updateNoDictado(i, 'factor', e.target.value)} className="flex-1 border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white">
+                  <option value="">Factor...</option>
+                  {FACTORES.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
+                <input type="number" min={1} value={nd.cantidad} onChange={e => updateNoDictado(i, 'cantidad', Number(e.target.value))} className="w-24 border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Cant." />
+                <Button type="button" variant="danger" onClick={() => removeNoDictado(i)}>Quitar</Button>
+              </div>
+            ))}
+            <Button type="button" variant="secondary" onClick={() => setNoDictados(prev => [...prev, { factor: '', cantidad: 1 }])}>+ Agregar factor</Button>
+          </div>
           <Input label="Observación" name="observacion" defaultValue={editing?.observacion ?? ''} />
           <Button type="submit" variant="primary">Guardar</Button>
         </form>
       </FormModal>}
 
       {deleteTarget && (
-        <ConfirmModal title="Eliminar registro" message="¿Estás seguro de eliminar este registro semanal de módulos?" onConfirm={executeDelete} onCancel={() => setDeleteTarget(null)} loading={deleting} />
+        <ConfirmModal title="Eliminar registro" message="¿Estás seguro de eliminar este registro mensual de módulos?" onConfirm={executeDelete} onCancel={() => setDeleteTarget(null)} loading={deleting} />
       )}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>

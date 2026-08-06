@@ -286,15 +286,18 @@ export class ReportesService {
       }
       doc.moveDown();
 
-      if (curso.modulosSemanales && curso.modulosSemanales.length > 0) {
+      if (curso.modulosMensuales && curso.modulosMensuales.length > 0) {
         doc
           .fontSize(12)
           .text('Últimos módulos registrados:', { underline: true });
         doc.moveDown(0.5);
         doc.fontSize(10);
-        for (const m of curso.modulosSemanales) {
+        for (const m of curso.modulosMensuales) {
+          const noDictados = (m.noDictados ?? [])
+            .map((n) => `${n.factor}(${n.cantidad})`)
+            .join(', ');
           doc.text(
-            `${m.semanaInicio.toISOString().split('T')[0]} | ${m.materia.nombre} | Prev:${m.modulosPrevistos} Dict:${m.modulosDictados}${m.factor ? ` (${m.factor})` : ''}`,
+            `${m.mes.toISOString().split('T')[0]} | ${m.materia.nombre} | Prev:${m.modulosPrevistos} Dict:${m.modulosDictados}${noDictados ? ` | No dictados: ${noDictados}` : ''}`,
           );
         }
       }

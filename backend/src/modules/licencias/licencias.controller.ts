@@ -8,13 +8,20 @@ import {
   Body,
   ParseIntPipe,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { LicenciasService } from './licencias.service';
 import { CrearLicenciaDto } from './dto/crear-licencia.dto';
 import { ActualizarLicenciaDto } from './dto/actualizar-licencia.dto';
 import { FiltrarLicenciasDto } from './dto/filtrar-licencias.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ROLES } from '../../common/constants/roles';
 
 @Controller('licencias')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(ROLES.RECTOR, ROLES.SECRETARIA_PERSONAL)
 export class LicenciasController {
   constructor(private licenciasService: LicenciasService) {}
 

@@ -1,6 +1,11 @@
 export interface LoginResponse {
   accessToken: string;
-  usuario: Usuario;
+  usuario: UsuarioSesion;
+}
+
+export interface UsuarioSesion {
+  id: number; nombreUsuario: string; nombre: string; apellido: string;
+  rol: string;
 }
 
 export interface Usuario {
@@ -38,6 +43,7 @@ export interface Seguimiento { id: number; alumnoId: number; fecha: string; tipo
 export interface Tutor { id: number; alumnoId: number; nombre: string; apellido: string; dni: string; }
 export interface Licencia { id: number; docenteId: number; fechaInicio: string; fechaFin: string; codigo: string; motivo: string; estado: string; observacion?: string; }
 export interface CursoMateria { cursoId: number; materiaId: number; cargaHoraria: number; modulosPorSemana: number; materia?: Materia; curso?: Curso; }
-export interface ModuloSemanal { id: number; docenteId: number; cursoId: number; materiaId: number; semanaInicio: string; modulosPrevistos: number; modulosDictados: number; factor?: string; observacion?: string; docente?: Docente; materia?: Materia; curso?: Curso; }
+export interface ModuloNoDictado { id?: number; factor: string; cantidad: number; observacion?: string | null; }
+export interface ModuloMensual { id: number; docenteId: number; cursoId: number; materiaId: number; mes: string; modulosPrevistos: number; modulosDictados: number; noDictados?: ModuloNoDictado[]; observacion?: string; docente?: Docente; materia?: Materia; curso?: Curso; }
 export interface DiaSinClases { id: number; fecha: string; tipo: string; descripcion?: string; cursoId?: number; curso?: Curso; createdAt: string; }
 export interface DashboardResumen { totales: { alumnos: number; docentes: number; cursos: number; usuarios: number }; asistenciaHoy: { total: number; presentes: number; ausentes: number }; }

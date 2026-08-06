@@ -8,13 +8,20 @@ import {
   Body,
   ParseIntPipe,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { MateriasService } from './materias.service';
 import { CrearMateriaDto } from './dto/crear-materia.dto';
 import { ActualizarMateriaDto } from './dto/actualizar-materia.dto';
 import { FiltrarMateriasDto } from './dto/filtrar-materias.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { ROLES } from '../../common/constants/roles';
 
 @Controller('materias')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(ROLES.RECTOR, ROLES.VICERRECTOR)
 export class MateriasController {
   constructor(private materiasService: MateriasService) {}
 
