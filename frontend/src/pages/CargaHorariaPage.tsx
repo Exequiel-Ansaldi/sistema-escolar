@@ -3,7 +3,7 @@ import { api } from '../services/api';
 import { FormModal, Select, Input, Button, Toast, Pagination } from '../components/ui';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 1;
 
 export function CargaHorariaPage() {
   const [cursos, setCursos] = useState<any[]>([]);
