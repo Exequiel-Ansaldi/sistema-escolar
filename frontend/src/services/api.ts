@@ -202,10 +202,10 @@ export const api = {
 
   getDashboard: () =>
     request<DashboardResumen>('/dashboard/resumen'),
-  getAlumnosPorCurso: () =>
-    request<{ curso: Curso; cantidad: number }[]>('/dashboard/alumnos-por-curso'),
-  getCalificacionesResumen: () =>
-    request<{ promedioGeneral: number | null; notaMax: number | null; notaMin: number | null; total: number }>('/dashboard/calificaciones-resumen'),
+  getAprobadosPorCurso: () =>
+    request<{ anio: number; turno: string; aprobados: number; alumnos: number }[]>('/dashboard/aprobados-por-curso'),
+  getPromedioPorAnio: () =>
+    request<{ anio: number; promedio: number }[]>('/dashboard/promedio-por-anio'),
 
   getDiasSinClases: (params?: { desde?: string; hasta?: string; cursoId?: number }, page = 1, limit = 10) => {
     const qs = new URLSearchParams();

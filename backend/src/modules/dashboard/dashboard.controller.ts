@@ -16,9 +16,9 @@ export class DashboardController {
     return this.dashboardService.resumen();
   }
 
-  @Get('alumnos-por-curso')
-  alumnosPorCurso() {
-    return this.dashboardService.alumnosPorCurso();
+  @Get('aprobados-por-curso')
+  aprobadosPorCurso() {
+    return this.dashboardService.aprobadosPorCurso();
   }
 
   @Get('ultimas-asistencias')
@@ -28,8 +28,8 @@ export class DashboardController {
     );
   }
 
-  @Get('calificaciones-resumen')
-  calificacionesResumen() {
-    return this.dashboardService.calificacionesResumen();
+  @Get('promedio-por-anio')
+  promedioPorAnio() {
+    return this.dashboardService.promedioPorAnio();
   }
 }

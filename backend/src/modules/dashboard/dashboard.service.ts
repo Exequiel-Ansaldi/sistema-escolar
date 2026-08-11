@@ -3,8 +3,8 @@ import { DashboardRepository } from './repositories/dashboard.repository';
 import { DiasSinClasesRepository } from '../dias-sin-clases/repositories/dias-sin-clases.repository';
 import type {
   DashboardResumenResponse,
-  AlumnosPorCursoResponse,
-  CalificacionesResumenResponse,
+  AprobadosPorCursoResponse,
+  PromedioPorAnioResponse,
 } from './dto/dashboard-response';
 
 @Injectable()
@@ -96,26 +96,101 @@ export class DashboardService {
     };
   }
 
-  async alumnosPorCurso(): Promise<AlumnosPorCursoResponse[]> {
-    const cursos = await this.repo.findCursosConInscripciones();
-    return cursos.map((c) => ({
-      id: c.id,
-      nombre: `${c.anio}°${c.division} - ${c.turno} (${c.orientacion})`,
-      alumnos: c._count.inscripciones,
-    }));
+  async aprobadosPorCurso(): Promise<AprobadosPorCursoResponse[]> {
+    const [inscripciones, promedios] = await Promise.all([
+      this.repo.findInscripcionesActivasConCurso(),
+      this.repo.calificacionesPromedioPorAlumnoMateria(),
+    ]);
+
+    const cursoDeAlumno = new Map<
+      number,
+      (typeof inscripciones)[number]['curso']
+    >();
+    for (const i of inscripciones) {
+      if (!cursoDeAlumno.has(i.alumnoId))
+        cursoDeAlumno.set(i.alumnoId, i.curso);
+    }
+
+    const promedioPorAlumno = new Map<number, number>();
+    for (const g of promedios) {
+      const actual = promedioPorAlumno.get(g.alumnoId) ?? 0;
+      promedioPorAlumno.set(g.alumnoId, actual + (g._avg.nota ?? 0));
+    }
+    const materiasPorAlumno = new Map<number, number>();
+    for (const g of promedios) {
+      materiasPorAlumno.set(
+        g.alumnoId,
+        (materiasPorAlumno.get(g.alumnoId) ?? 0) + 1,
+      );
+    }
+
+    const porAnioTurno = new Map<
+      string,
+      { anio: number; turno: string; aprobados: number; alumnos: number }
+    >();
+    for (const i of inscripciones) {
+      const curso = cursoDeAlumno.get(i.alumnoId);
+      if (!curso) continue;
+      const key = `${curso.anio}-${curso.turno}`;
+      const entry = porAnioTurno.get(key) ?? {
+        anio: curso.anio,
+        turno: curso.turno,
+        aprobados: 0,
+        alumnos: 0,
+      };
+      entry.alumnos++;
+      const total = promedioPorAlumno.get(i.alumnoId);
+      const materias = materiasPorAlumno.get(i.alumnoId);
+      if (
+        total !== undefined &&
+        materias !== undefined &&
+        materias > 0 &&
+        total / materias >= 6
+      ) {
+        entry.aprobados++;
+      }
+      porAnioTurno.set(key, entry);
+    }
+
+    return [...porAnioTurno.values()].sort(
+      (a, b) => a.anio - b.anio || a.turno.localeCompare(b.turno),
+    );
+  }
+
+  async promedioPorAnio(): Promise<PromedioPorAnioResponse[]> {
+    const [inscripciones, promedios] = await Promise.all([
+      this.repo.findInscripcionesActivasConCurso(),
+      this.repo.calificacionesPromedioPorAlumnoMateria(),
+    ]);
+
+    const anioDeAlumno = new Map<number, number>();
+    for (const i of inscripciones) {
+      if (!anioDeAlumno.has(i.alumnoId))
+        anioDeAlumno.set(i.alumnoId, i.curso.anio);
+    }
+
+    const acumuladoPorAnio = new Map<
+      number,
+      { suma: number; cantidad: number }
+    >();
+    for (const g of promedios) {
+      const anio = anioDeAlumno.get(g.alumnoId);
+      if (anio === undefined || g._avg.nota === null) continue;
+      const actual = acumuladoPorAnio.get(anio) ?? { suma: 0, cantidad: 0 };
+      actual.suma += g._avg.nota;
+      actual.cantidad++;
+      acumuladoPorAnio.set(anio, actual);
+    }
+
+    return [...acumuladoPorAnio.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([anio, v]) => ({
+        anio,
+        promedio: Math.round((v.suma / v.cantidad) * 100) / 100,
+      }));
   }
 
   async ultimasAsistencias(limite = 10) {
     return this.repo.findUltimasAsistencias(limite);
-  }
-
-  async calificacionesResumen(): Promise<CalificacionesResumenResponse> {
-    const aggr = await this.repo.aggregateCalificaciones();
-    return {
-      totalCalificaciones: aggr._count,
-      promedioGeneral: Math.round(Number(aggr._avg.nota) * 100) / 100,
-      notaMaxima: aggr._max.nota,
-      notaMinima: aggr._min.nota,
-    };
   }
 }

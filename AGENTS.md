@@ -26,6 +26,8 @@ Note: Módulos Mensuales (`modulos_mensuales` → `ModuloMensual`) tiene una tab
 
 Note: Días sin Clases (`dias_sin_clases` → `DiaSinClases`): `tipo` ∈ `feriado | paro | asamblea`. `cursoId: null` = global (todos los cursos); con `cursoId` = solo ese curso (ej. paro de 1°A no afecta a 1°B). `AsistenciaService.esSinClases` bloquea asistencia en fin de semana/global/del curso (409); la lista marca `no_corresponde`. `DiasSinClasesRepository.find` con `cursoId` devuelve globales + del curso (`OR [{cursoId},{cursoId:null}]`). Dashboard `esHabil` solo considera registros globales para "asistencia hoy". En `CalendarioPage` el curso de paro/asamblea se elige con selects encadenados Año → División → Turno (obligatorio, sin opción "Todos los cursos"); el `cursoId` se resuelve en el frontend buscando la coincidencia `(anio, division, turno)`. El seed tiene 21 cursos (1-6° × A/B/C + turno noche 4-6°N).
 
+Note: Dashboard — "Aprobados por Curso": aprobado = promedio **por materia** de sus trimestres (T1/T2/T3 disponibles) y luego promedio general del alumno; **≥ 6 aprueba**. `GET /api/dashboard/aprobados-por-curso` → `[{ anio, turno, aprobados, alumnos }]` (agrupado por `(anio, turno)`, turnos: mañana/tarde/noche). `GET /api/dashboard/promedio-por-anio` → `[{ anio, promedio }]`. Los viejos `alumnos-por-curso` y `calificaciones-resumen` ya no existen. En `Dashboard.tsx` el BarChart de aprobados se pivotea a `stackData` (barras apiladas por turno) y el de promedio usa `ReferenceLine y={6}`. La página de Carga Horaria usa `PAGE_SIZE = 1` (cada curso renderiza un `rowSpan` con sus materias).
+
 ## API pagination pattern
 
 Backend: `skip`/`take` in repository methods, return `PaginatedResult<T>`.

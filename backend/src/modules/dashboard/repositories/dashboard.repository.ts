@@ -69,11 +69,28 @@ export class DashboardRepository {
     });
   }
 
-  findCursosConInscripciones() {
-    return this.prisma.curso.findMany({
+  findInscripcionesActivasConCurso() {
+    return this.prisma.inscripcion.findMany({
       where: { estado: 'activo' },
-      include: { _count: { select: { inscripciones: true } } },
-      orderBy: [{ anio: 'asc' }, { division: 'asc' }],
+      select: {
+        alumnoId: true,
+        curso: {
+          select: {
+            id: true,
+            anio: true,
+            division: true,
+            turno: true,
+            orientacion: true,
+          },
+        },
+      },
+    });
+  }
+
+  calificacionesPromedioPorAlumnoMateria() {
+    return this.prisma.calificacion.groupBy({
+      by: ['alumnoId', 'materiaId'],
+      _avg: { nota: true },
     });
   }
 
@@ -89,14 +106,5 @@ export class DashboardRepository {
 
   findMaterias() {
     return this.prisma.materia.findMany({ select: { id: true, nombre: true } });
-  }
-
-  aggregateCalificaciones() {
-    return this.prisma.calificacion.aggregate({
-      _avg: { nota: true },
-      _count: true,
-      _max: { nota: true },
-      _min: { nota: true },
-    });
   }
 }

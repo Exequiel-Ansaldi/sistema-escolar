@@ -27,15 +27,14 @@ export interface DashboardResumenResponse {
   modulos: ModulosResumenResponse;
 }
 
-export interface AlumnosPorCursoResponse {
-  id: number;
-  nombre: string;
+export interface AprobadosPorCursoResponse {
+  anio: number;
+  turno: string;
+  aprobados: number;
   alumnos: number;
 }
 
-export interface CalificacionesResumenResponse {
-  totalCalificaciones: number;
-  promedioGeneral: number;
-  notaMaxima: number | null;
-  notaMinima: number | null;
+export interface PromedioPorAnioResponse {
+  anio: number;
+  promedio: number;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Users, BookOpen, GraduationCap, UserCheck, Clock } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, ReferenceLine } from 'recharts';
 import { api } from '../services/api';
 import { Card } from '../components/ui';
 
@@ -12,17 +12,31 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([api.getDashboard(), api.getAlumnosPorCurso(), api.getCalificacionesResumen()])
-      .then(([res, cursos, cal]) => setData({ ...res, alumnosPorCurso: cursos, calificaciones: cal }))
+    Promise.all([api.getDashboard(), api.getAprobadosPorCurso(), api.getPromedioPorAnio()])
+      .then(([res, cursos, cal]) => setData({ ...res, aprobadosPorCurso: cursos, promedioPorAnio: cal }))
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" /></div>;
   if (!data) return <div className="text-center py-20 text-gray-400">Error al cargar datos</div>;
 
-  const cursoData = (data.alumnosPorCurso || []).map((c: any) => ({
-    name: c.nombre || `${c.anio}°${c.division}`,
-    alumnos: c.alumnos || c._count?.alumnos || 0,
+  const TURNO_LABELS: Record<string, string> = { mañana: 'Mañana', tarde: 'Tarde', noche: 'Noche' };
+
+  const stackData = (() => {
+    const map = new Map<number, { anio: number; mañana: number; tarde: number; noche: number }>();
+    for (const c of data.aprobadosPorCurso || []) {
+      const entry = map.get(c.anio) ?? { anio: c.anio, mañana: 0, tarde: 0, noche: 0 };
+      if (c.turno === 'mañana') entry.mañana += c.aprobados;
+      else if (c.turno === 'tarde') entry.tarde += c.aprobados;
+      else if (c.turno === 'noche') entry.noche += c.aprobados;
+      map.set(c.anio, entry);
+    }
+    return [...map.values()].sort((a, b) => a.anio - b.anio);
+  })();
+
+  const anioData = (data.promedioPorAnio || []).map((c: any) => ({
+    anio: c.anio,
+    promedio: c.promedio,
   }));
 
   const { fecha, fechaHoy, presentes, ausentes } = data.asistenciaHoy ?? {};
@@ -51,16 +65,19 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
-            <h2 className="font-semibold text-gray-800 mb-1">Alumnos por Curso</h2>
-            <p className="text-xs text-gray-400 mb-2">Distribución de alumnos en cada curso</p>
-            {cursoData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={cursoData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+            <h2 className="font-semibold text-gray-800 mb-1">Aprobados por Curso</h2>
+            <p className="text-xs text-gray-400 mb-2">Aprobados por año y turno (promedio por materia ≥ 6)</p>
+            {stackData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={stackData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                  <XAxis dataKey="anio" tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: any) => `${v}°`} />
                   <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} allowDecimals={false} />
-                  <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} labelStyle={{ fontWeight: 600, color: '#1e293b' }} />
-                  <Bar dataKey="alumnos" fill="#2563eb" radius={[6, 6, 0, 0]} maxBarSize={60} />
+                  <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} labelStyle={{ fontWeight: 600, color: '#1e293b' }} labelFormatter={(l: any) => `${l}° año`} />
+                  <Legend formatter={(v: any) => TURNO_LABELS[v] ?? v} />
+                  <Bar dataKey="mañana" stackId="aprob" fill="#2563eb" maxBarSize={60} name="Mañana" />
+                  <Bar dataKey="tarde" stackId="aprob" fill="#059669" maxBarSize={60} name="Tarde" />
+                  <Bar dataKey="noche" stackId="aprob" fill="#d97706" maxBarSize={60} name="Noche" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="text-center py-12 text-gray-400 text-sm">Sin datos</div>}
@@ -109,21 +126,19 @@ export default function Dashboard() {
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-            <h2 className="font-semibold text-gray-800 mb-2">Resumen Calificaciones</h2>
-            {data?.calificaciones ? (
-              <div className="space-y-1">
-                {[
-                  { label: 'Promedio General', value: data.calificaciones.promedioGeneral ?? '-', color: 'text-gray-800' },
-                  { label: 'Nota Máxima', value: data.calificaciones.notaMaxima ?? '-', color: 'text-emerald-600' },
-                  { label: 'Nota Mínima', value: data.calificaciones.notaMinima ?? '-', color: 'text-red-500' },
-                  { label: 'Total Calificaciones', value: data.calificaciones.totalCalificaciones, color: 'text-gray-800' },
-                ].map(item => (
-                  <div key={item.label} className="flex items-center justify-between py-1">
-                    <span className="text-sm text-gray-500">{item.label}</span>
-                    <span className={`font-bold text-lg ${item.color}`}>{item.value}</span>
-                  </div>
-                ))}
-              </div>
+            <h2 className="font-semibold text-gray-800 mb-1">Promedio por Año</h2>
+            <p className="text-xs text-gray-400 mb-2">Nota promedio por año (aprueba con 6)</p>
+            {anioData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={anioData} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="anio" tick={{ fontSize: 12, fill: '#94a3b8' }} tickFormatter={(v: any) => `${v}°`} />
+                  <YAxis domain={[0, 10]} tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                  <ReferenceLine y={6} stroke="#dc2626" strokeDasharray="4 4" label={{ value: 'Aprobación', position: 'insideBottomRight', fill: '#dc2626', fontSize: 11 }} />
+                  <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} labelStyle={{ fontWeight: 600, color: '#1e293b' }} formatter={(v: any) => [v, 'Promedio']} labelFormatter={(l: any) => `${l}° año`} />
+                  <Bar dataKey="promedio" fill="#2563eb" radius={[6, 6, 0, 0]} maxBarSize={50} />
+                </BarChart>
+              </ResponsiveContainer>
             ) : <div className="text-center py-4 text-gray-400 text-sm">Sin datos</div>}
           </div>
 
