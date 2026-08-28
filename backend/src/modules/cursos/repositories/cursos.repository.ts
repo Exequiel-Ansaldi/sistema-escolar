@@ -72,7 +72,7 @@ export class CursosRepository {
     filters?: { anio?: number; division?: string; turno?: string },
   ): Promise<PaginatedResult<CursoResponse>> {
     const skip = (page - 1) * limit;
-    const where: Prisma.CursoWhereInput = {};
+    const where: Prisma.CursoWhereInput = { estado: 'activo' };
     if (filters?.anio) where.anio = filters.anio;
     if (filters?.division) where.division = filters.division;
     if (filters?.turno) where.turno = filters.turno;

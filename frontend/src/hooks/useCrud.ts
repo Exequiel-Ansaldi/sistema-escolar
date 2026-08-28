@@ -49,16 +49,21 @@ export function useCrud<T extends { id: number }>(
   const closeForm = () => { setEditing(null); setShowForm(false); };
 
   const [error, setError] = useState<string | null>(null);
+  const [deleteMessage, setDeleteMessage] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const clearDeleteMessage = () => setDeleteMessage(null);
 
   const save = async (body: any) => {
     setError(null);
     try {
+      let nuevo: T | undefined;
       if (editing?.id) await updateFn(editing.id, body);
-      else await createFn(body);
+      else nuevo = await createFn(body);
       closeForm();
       load();
+      return nuevo;
     } catch (err: any) {
       setError(err.message || 'Error al guardar');
+      return undefined;
     }
   };
 
@@ -68,8 +73,15 @@ export function useCrud<T extends { id: number }>(
   const executeDelete = async () => {
     if (!pendingDelete) return;
     setDeleting(true);
-    try { await deleteFn(pendingDelete.id); setPendingDelete(null); load(); } finally { setDeleting(false); }
+    try {
+      await deleteFn(pendingDelete.id);
+      setPendingDelete(null);
+      setDeleteMessage({ message: 'Eliminado con éxito', type: 'success' });
+      load();
+    } catch (err: any) {
+      setDeleteMessage({ message: err.message || 'Error al eliminar', type: 'error' });
+    } finally { setDeleting(false); }
   };
 
-  return { data, loading, editing, showForm, pendingDelete, deleting, openCreate, openEdit, closeForm, save, confirmRemove, cancelDelete, executeDelete, load, error, setError, page, totalPages, total, changePage, setFilters };
+  return { data, loading, editing, showForm, pendingDelete, deleting, openCreate, openEdit, closeForm, save, confirmRemove, cancelDelete, executeDelete, load, error, setError, deleteMessage, clearDeleteMessage, page, totalPages, total, changePage, setFilters };
 }

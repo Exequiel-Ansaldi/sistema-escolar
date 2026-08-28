@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useRef, type ReactNode } from 'react';
-import { DataTable, FormModal, Input, Button, ConfirmModal, Pagination } from '../components/ui';
+import { DataTable, FormModal, Input, Button, ConfirmModal, Pagination, Toast } from '../components/ui';
 import { useCrud } from '../hooks/useCrud';
 import { Plus } from 'lucide-react';
 import type { PaginatedResult } from '../services/api';
@@ -14,10 +14,11 @@ interface CrudPageProps {
   deleteFn: (id: number) => Promise<any>;
   renderFilters?: () => ReactNode;
   filterParams?: Record<string, string>;
+  onCreated?: (row: any) => void;
 }
 
-export function CrudPage({ title, columns, fields, fetchFn, createFn, updateFn, deleteFn, renderFilters, filterParams = {} }: CrudPageProps) {
-  const { data, loading, editing, showForm, pendingDelete, deleting, openCreate, openEdit, closeForm, save, confirmRemove, cancelDelete, executeDelete, error, page, totalPages, changePage, setFilters } = useCrud(fetchFn, createFn, updateFn, deleteFn, filterParams);
+export function CrudPage({ title, columns, fields, fetchFn, createFn, updateFn, deleteFn, renderFilters, filterParams = {}, onCreated }: CrudPageProps) {
+  const { data, loading, editing, showForm, pendingDelete, deleting, openCreate, openEdit, closeForm, save, confirmRemove, cancelDelete, executeDelete, error, page, totalPages, changePage, setFilters, deleteMessage, clearDeleteMessage } = useCrud(fetchFn, createFn, updateFn, deleteFn, filterParams);
 
   const prevParams = useRef(filterParams);
   useEffect(() => {
@@ -43,7 +44,7 @@ export function CrudPage({ title, columns, fields, fetchFn, createFn, updateFn, 
       <Pagination page={page} totalPages={totalPages} onPageChange={changePage} />
       {showForm && (
         <FormModal title={editing?.id ? `Editar ${title}` : `Nuevo ${title}`} onClose={closeForm}>
-          <form onSubmit={e => { e.preventDefault(); const fd = new FormData(e.currentTarget); const body: any = {}; fields.forEach(f => { const v = fd.get(f.key); if (f.type === 'number') body[f.key] = v ? Number(v) : undefined; else body[f.key] = v || undefined; }); save(body); }}>
+          <form onSubmit={e => { e.preventDefault(); const fd = new FormData(e.currentTarget); const body: any = {}; fields.forEach(f => { const v = fd.get(f.key); if (f.type === 'number') body[f.key] = v ? Number(v) : undefined; else body[f.key] = v || undefined; }); save(body).then(row => { if (row) onCreated?.(row); }); }}>
             {error && <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
             {fields.map(f => (
               f.options ? (
@@ -71,6 +72,7 @@ export function CrudPage({ title, columns, fields, fetchFn, createFn, updateFn, 
           onCancel={cancelDelete}
           loading={deleting} />
       )}
+      {deleteMessage && <Toast message={deleteMessage.message} type={deleteMessage.type} onClose={clearDeleteMessage} />}
     </div>
   );
 }

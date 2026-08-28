@@ -59,15 +59,18 @@ export class DocentesRepository {
     search?: string,
   ): Promise<PaginatedResult<DocenteResponse>> {
     const skip = (page - 1) * limit;
-    const where: Prisma.DocenteWhereInput = search
-      ? {
-          OR: [
-            { nombre: { contains: search, mode: 'insensitive' } },
-            { apellido: { contains: search, mode: 'insensitive' } },
-            { dni: { contains: search } },
-          ],
-        }
-      : {};
+    const where: Prisma.DocenteWhereInput = {
+      estado: 'activo',
+      ...(search
+        ? {
+            OR: [
+              { nombre: { contains: search, mode: 'insensitive' } },
+              { apellido: { contains: search, mode: 'insensitive' } },
+              { dni: { contains: search } },
+            ],
+          }
+        : {}),
+    };
     const [rows, total] = await Promise.all([
       this.prisma.docente.findMany({
         skip,

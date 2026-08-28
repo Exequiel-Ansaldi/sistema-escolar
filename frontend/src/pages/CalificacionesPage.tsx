@@ -78,15 +78,18 @@ export function CalificacionesPage() {
             </div>
           </div>
         )}
-        {promTrimestre.map(t => (
-          <div key={t.trimestre} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600"><BarChart3 size={24} /></div>
-            <div>
-              <div className="text-sm text-slate-500">{t.trimestre}° Trimestre</div>
-              <div className="text-2xl font-bold text-slate-800">{t._avg?.nota?.toFixed(2) ?? '-'} <span className="text-sm font-normal text-slate-400">({t._count} calif.)</span></div>
+        {[1, 2, 3].map(trim => {
+          const t = promTrimestre.find((x: any) => x.trimestre === trim);
+          return (
+            <div key={trim} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600"><BarChart3 size={24} /></div>
+              <div>
+                <div className="text-sm text-slate-500">{trim}° Trimestre</div>
+                <div className="text-2xl font-bold text-slate-800">{t?.promedio != null ? t.promedio.toFixed(2) : '-'} {t && <span className="text-sm font-normal text-slate-400">({t.count} calif.)</span>}</div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {promMateria.length > 0 && (

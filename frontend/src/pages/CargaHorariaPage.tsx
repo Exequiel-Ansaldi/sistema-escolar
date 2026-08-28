@@ -18,7 +18,10 @@ export function CargaHorariaPage() {
   const [editing, setEditing] = useState<any | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [cursoIdForm, setCursoIdForm] = useState('');
+  const [formDesde, setFormDesde] = useState('');
+  const [formHasta, setFormHasta] = useState('');
+  const [formDivisiones, setFormDivisiones] = useState<string[]>([]);
+  const [formTurnos, setFormTurnos] = useState<string[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
@@ -45,26 +48,67 @@ export function CargaHorariaPage() {
     .map(c => c.division))].sort();
   const turnosDisponibles = ['mañana', 'tarde', 'noche'];
 
+  const divisionesEnRango = [...new Set(cursos
+    .filter(c => (!formDesde || c.anio >= Number(formDesde)) && (!formHasta || c.anio <= Number(formHasta)))
+    .map(c => c.division))].sort();
+  const turnosEnRango = [...new Set(cursos
+    .filter(c => (!formDesde || c.anio >= Number(formDesde)) && (!formHasta || c.anio <= Number(formHasta)))
+    .filter(c => formDivisiones.length === 0 || formDivisiones.includes(c.division))
+    .map(c => c.turno))].sort();
+
+  const cursosDestino = cursos.filter(c =>
+    c.estado === 'activo' &&
+    (!formDesde || c.anio >= Number(formDesde)) &&
+    (!formHasta || c.anio <= Number(formHasta)) &&
+    (formDivisiones.length === 0 || formDivisiones.includes(c.division)) &&
+    (formTurnos.length === 0 || formTurnos.includes(c.turno))
+  );
+
   const save = async (body: any) => {
-    const id = editing ? editing.cursoId : Number(cursoIdForm);
-    const curso = cursos.find(c => c.id === id);
-    if (!curso) { setToast({ message: 'Seleccioná un curso', type: 'error' }); return; }
     const materiaId = editing ? editing.materiaId : Number(body.materiaId);
     const modulosPorSemana = Number(body.modulosPorSemana);
+    if (!materiaId) { setToast({ message: 'Seleccioná una materia', type: 'error' }); return; }
     if (!modulosPorSemana) { setToast({ message: 'Completá los módulos por semana', type: 'error' }); return; }
     try {
       if (editing) {
-        await api.updateCargaHoraria(curso.id, materiaId, { modulosPorSemana });
+        await api.updateCargaHoraria(editing.cursoId, materiaId, { modulosPorSemana });
         setToast({ message: 'Módulos actualizados', type: 'success' });
-      } else {
-        if (!materiaId) { setToast({ message: 'Seleccioná una materia', type: 'error' }); return; }
-        const yaExiste = allAsignaciones.find(r => r.materiaId === materiaId && r.cursoId === curso.id);
-        if (yaExiste) { setToast({ message: 'Esa materia ya está asignada a este curso', type: 'error' }); return; }
-        await api.asignarMateriaCurso({ cursoId: curso.id, materiaId, cargaHoraria: Math.round(modulosPorSemana * 40 / 60), modulosPorSemana });
-        setAllAsignaciones(prev => [...prev, { cursoId: curso.id, materiaId }]);
-        setToast({ message: 'Materia asignada', type: 'success' });
+        setShowForm(false); setEditing(null);
+        load();
+        return;
       }
-      setShowForm(false); setEditing(null);
+      if (!formDesde || !formHasta) { setToast({ message: 'Elegí el rango de años desde/hasta', type: 'error' }); return; }
+      if (Number(formDesde) > Number(formHasta)) { setToast({ message: 'El año "desde" no puede ser mayor que "hasta"', type: 'error' }); return; }
+      if (formDivisiones.length === 0) { setToast({ message: 'Elegí al menos una división', type: 'error' }); return; }
+      if (formTurnos.length === 0) { setToast({ message: 'Elegí al menos un turno', type: 'error' }); return; }
+      if (cursosDestino.length === 0) { setToast({ message: 'No hay cursos que coincidan con el rango elegido', type: 'error' }); return; }
+
+      const cargaHoraria = Math.round(modulosPorSemana * 40 / 60);
+      let asignados = 0;
+      let omitidos = 0;
+      const errores: string[] = [];
+
+      for (const curso of cursosDestino) {
+        const yaExiste = allAsignaciones.find(r => r.materiaId === materiaId && r.cursoId === curso.id);
+        if (yaExiste) { omitidos++; continue; }
+        try {
+          await api.asignarMateriaCurso({ cursoId: curso.id, materiaId, cargaHoraria, modulosPorSemana });
+          setAllAsignaciones(prev => [...prev, { cursoId: curso.id, materiaId }]);
+          asignados++;
+        } catch {
+          errores.push(`${curso.anio}°${curso.division}`);
+        }
+      }
+
+      if (asignados === 0 && errores.length === 0) {
+        setToast({ message: 'Todos los cursos ya tienen esa materia asignada', type: 'error' });
+      } else {
+        const partes = [`Asignada en ${asignados} ${asignados === 1 ? 'curso' : 'cursos'}`];
+        if (omitidos > 0) partes.push(`${omitidos} ya la tenían`);
+        if (errores.length > 0) partes.push(`${errores.length} con error (${errores.join(', ')})`);
+        setToast({ message: partes.join(' · '), type: errores.length > 0 ? 'error' : 'success' });
+      }
+      setShowForm(false);
       load();
     } catch (err: any) { setToast({ message: err.message, type: 'error' }); }
   };
@@ -91,7 +135,7 @@ export function CargaHorariaPage() {
           <h1 className="text-2xl font-bold text-slate-800">Carga Horaria</h1>
           <p className="text-slate-500 text-sm mt-1">Asignación de materias y carga horaria por curso</p>
         </div>
-        {cursos.length > 0 && <Button onClick={() => { setEditing(null); setCursoIdForm(''); setShowForm(true); }} variant="primary"><Plus size={16} /> Agregar materia</Button>}
+        {cursos.length > 0 && <Button onClick={() => { setEditing(null); setFormDesde(''); setFormHasta(''); setFormDivisiones([]); setFormTurnos([]); setShowForm(true); }} variant="primary"><Plus size={16} /> Agregar materia</Button>}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
@@ -166,7 +210,7 @@ export function CargaHorariaPage() {
       )}
       {grupos.length > 0 && <Pagination page={page} totalPages={totalPages} onPageChange={p => setPage(p)} />}
 
-      {showForm && <FormModal title={editing ? 'Editar carga horaria' : 'Asignar materia al curso'} onClose={() => { setShowForm(false); setEditing(null); }}>
+      {showForm && <FormModal title={editing ? 'Editar carga horaria' : 'Asignar materia a cursos'} onClose={() => { setShowForm(false); setEditing(null); }}>
         <form onSubmit={e => { e.preventDefault(); save(Object.fromEntries(new FormData(e.currentTarget))); }}>
           {editing ? (
             <>
@@ -174,24 +218,64 @@ export function CargaHorariaPage() {
               <p className="text-sm text-slate-500 mb-4">Materia: <strong>{editing.materia?.nombre}</strong></p>
             </>
           ) : (
-            <Select label="Curso" value={cursoIdForm} onChange={e => setCursoIdForm(e.target.value)}>
-              <option value="">Seleccionar curso...</option>
-              {cursosFiltrados.map(c => <option key={c.id} value={c.id}>{c.anio}°{c.division} - {c.turno}</option>)}
-            </Select>
+            <div className="mb-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Rango de años a cargar</label>
+                <div className="flex items-center gap-2">
+                  <select value={formDesde} onChange={e => { setFormDesde(e.target.value); setFormDivisiones([]); setFormTurnos([]); }} className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="">Desde</option>
+                    {aniosDisponibles.map(a => <option key={a} value={a}>{a}°</option>)}
+                  </select>
+                  <span className="text-slate-400">→</span>
+                  <select value={formHasta} onChange={e => { setFormHasta(e.target.value); setFormDivisiones([]); setFormTurnos([]); }} className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+                    <option value="">Hasta</option>
+                    {aniosDisponibles.map(a => <option key={a} value={a}>{a}°</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Divisiones</label>
+                <div className="flex flex-wrap gap-3">
+                  {divisionesEnRango.length > 0 ? divisionesEnRango.map(d => (
+                    <label key={d} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                      <input type="checkbox" checked={formDivisiones.includes(d)} onChange={e => setFormDivisiones(prev => e.target.checked ? [...prev, d] : prev.filter(x => x !== d))} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                      {d}
+                    </label>
+                  )) : <span className="text-sm text-slate-300 italic">Elegí un rango de años</span>}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Turnos</label>
+                <div className="flex flex-wrap gap-3">
+                  {turnosEnRango.length > 0 ? turnosEnRango.map(t => (
+                    <label key={t} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                      <input type="checkbox" checked={formTurnos.includes(t)} onChange={e => setFormTurnos(prev => e.target.checked ? [...prev, t] : prev.filter(x => x !== t))} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                      {t}
+                    </label>
+                  )) : <span className="text-sm text-slate-300 italic">Elegí al menos una división</span>}
+                </div>
+              </div>
+            </div>
           )}
-          {editing || cursoIdForm ? (
-            <>
-              <Select label="Materia" name="materiaId">
-                <option value="">Seleccionar...</option>
-                {editing
-                  ? materias.filter(m => m.id === editing.materiaId).map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)
-                  : materias.filter(m => !allAsignaciones.find((r: any) => r.materiaId === m.id && r.cursoId === Number(cursoIdForm))).map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)
-                }
-              </Select>
-              <Input label="Módulos por semana (c/u = 40 min)" name="modulosPorSemana" type="number" required min={1} defaultValue={editing?.modulosPorSemana} />
-              <Button type="submit" variant="primary">{editing ? 'Actualizar' : 'Guardar'}</Button>
-            </>
-          ) : null}
+          <Select label="Materia" name="materiaId">
+            <option value="">Seleccionar...</option>
+            {editing
+              ? materias.filter(m => m.id === editing.materiaId).map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)
+              : materias.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)
+            }
+          </Select>
+          <Input label="Módulos por semana (c/u = 40 min)" name="modulosPorSemana" type="number" required min={1} defaultValue={editing?.modulosPorSemana} />
+          {!editing && cursosDestino.length > 0 && (
+            <p className="text-sm text-slate-500 -mt-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+              Se asignará a <strong>{cursosDestino.length} {cursosDestino.length === 1 ? 'curso' : 'cursos'}</strong>:{' '}
+              {cursosDestino.slice(0, 8).map(c => `${c.anio}°${c.division}`).join(', ')}{cursosDestino.length > 8 ? '…' : ''}
+              <span className="text-slate-400"> ({cursosDestino.map(c => c.turno)})</span>
+            </p>
+          )}
+          {!editing && cursosDestino.length === 0 && (
+            <p className="text-sm text-slate-400 -mt-2">Elegí el rango de años y las divisiones para ver los cursos a cargar.</p>
+          )}
+          <Button type="submit" variant="primary">{editing ? 'Actualizar' : 'Guardar'}</Button>
         </form>
       </FormModal>}
 

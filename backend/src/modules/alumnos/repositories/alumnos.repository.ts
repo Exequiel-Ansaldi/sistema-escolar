@@ -58,15 +58,18 @@ export class AlumnosRepository {
     search?: string,
   ): Promise<PaginatedResult<AlumnoResponse>> {
     const skip = (page - 1) * limit;
-    const where: Prisma.AlumnoWhereInput = search
-      ? {
-          OR: [
-            { nombre: { contains: search, mode: 'insensitive' } },
-            { apellido: { contains: search, mode: 'insensitive' } },
-            { dni: { contains: search } },
-          ],
-        }
-      : {};
+    const where: Prisma.AlumnoWhereInput = {
+      estado: 'activo',
+      ...(search
+        ? {
+            OR: [
+              { nombre: { contains: search, mode: 'insensitive' } },
+              { apellido: { contains: search, mode: 'insensitive' } },
+              { dni: { contains: search } },
+            ],
+          }
+        : {}),
+    };
     const [rows, total] = await Promise.all([
       this.prisma.alumno.findMany({
         skip,

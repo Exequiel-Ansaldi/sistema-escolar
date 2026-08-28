@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { CrudPage } from '../components/CrudPage';
+import { FormModal, Button } from '../components/ui';
+import { CheckCircle } from 'lucide-react';
 import { api } from '../services/api';
 
 export function AlumnosPage() {
   const [search, setSearch] = useState('');
-  return <CrudPage title="Alumnos" columns={[
+  const [created, setCreated] = useState<any | null>(null);
+  return <>
+    <CrudPage title="Alumnos" columns={[
     { key: 'dni', label: 'DNI' }, { key: 'apellido', label: 'Apellido' }, { key: 'nombre', label: 'Nombre' },
     { key: 'telefono', label: 'Teléfono' },
   ]} fields={[
@@ -17,9 +21,22 @@ export function AlumnosPage() {
     { key: 'fechaIngreso', label: 'Fecha Ingreso', type: 'date', required: true },
   ]} fetchFn={api.getAlumnos} createFn={api.createAlumno} updateFn={api.updateAlumno} deleteFn={api.deleteAlumno}
   filterParams={search ? { search } : {}}
+  onCreated={setCreated}
   renderFilters={() => <>
     <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por DNI, nombre o apellido..." className="w-full sm:w-72 border border-slate-300 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none" />
-  </>} />;
+  </>} />
+    {created && (
+      <FormModal title="Alumno creado" onClose={() => setCreated(null)}>
+        <div className="flex flex-col items-center gap-4 py-4">
+          <CheckCircle size={52} className="text-emerald-500" />
+          <p className="text-center text-slate-700">
+            <strong>{created.apellido}, {created.nombre}</strong> fue creado con éxito
+          </p>
+          <Button variant="primary" onClick={() => setCreated(null)}>Listo</Button>
+        </div>
+      </FormModal>
+    )}
+  </>;
 }
 
 export function CursosPage() {
