@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { CursoMateriaService } from './curso-materia.service';
 import { AsignarMateriaCursoDto } from './dto/asignar-materia-curso.dto';
+import { AsignarMateriaMasivoDto } from './dto/asignar-materia-masivo.dto';
 import { ActualizarCargaHorariaDto } from './dto/actualizar-carga-horaria.dto';
 import { FiltrarCursoMateriaDto } from './dto/filtrar-curso-materia.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -55,6 +56,15 @@ export class CursoMateriaController {
   @Post()
   asignar(@Body() dto: AsignarMateriaCursoDto) {
     return this.service.asignar(dto);
+  }
+
+  @Post('masivo')
+  asignarMasivo(@Body() dto: AsignarMateriaMasivoDto) {
+    return this.service.asignarMasivo(
+      dto.cursoIds,
+      dto.materiaId,
+      dto.modulosPorSemana,
+    );
   }
 
   @Patch(':cursoId/:materiaId')

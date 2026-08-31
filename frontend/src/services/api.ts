@@ -109,6 +109,8 @@ export const api = {
   },
   asignarMateriaCurso: (body: { cursoId: number; materiaId: number; cargaHoraria: number; modulosPorSemana: number }) =>
     request<CursoMateria>('/cursos-materias', { method: 'POST', body: JSON.stringify(body) }),
+  asignarMateriaCursoMasivo: (body: { cursoIds: number[]; materiaId: number; modulosPorSemana: number }) =>
+    request<{ asignados: number; omitidos: number; total: number }>('/cursos-materias/masivo', { method: 'POST', body: JSON.stringify(body) }),
   quitarMateriaCurso: (cursoId: number, materiaId: number) =>
     request<void>(`/cursos-materias/${cursoId}/${materiaId}`, { method: 'DELETE' }),
   updateCargaHoraria: (cursoId: number, materiaId: number, body: { cargaHoraria?: number; modulosPorSemana?: number }) =>

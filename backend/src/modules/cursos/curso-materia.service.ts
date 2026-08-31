@@ -40,6 +40,14 @@ export class CursoMateriaService {
     return this.repo.asignar(dto);
   }
 
+  asignarMasivo(
+    cursoIds: number[],
+    materiaId: number,
+    modulosPorSemana: number,
+  ) {
+    return this.repo.asignarMasivo(cursoIds, materiaId, modulosPorSemana);
+  }
+
   actualizarCarga(
     cursoId: number,
     materiaId: number,

@@ -89,6 +89,37 @@ export class CursoMateriaRepository {
     return this.prisma.cursoMateria.create({ data: dto });
   }
 
+  async asignarMasivo(
+    cursoIds: number[],
+    materiaId: number,
+    modulosPorSemana: number,
+  ): Promise<{ asignados: number; omitidos: number; total: number }> {
+    const cargaHoraria = Math.round((modulosPorSemana * 40) / 60);
+    return this.prisma.$transaction(async (tx) => {
+      const sinAsignar = await tx.curso.findMany({
+        where: {
+          id: { in: cursoIds },
+          estado: 'activo',
+          materias: { none: { materiaId } },
+        },
+        select: { id: true },
+      });
+      const { count } = await tx.cursoMateria.createMany({
+        data: sinAsignar.map((c) => ({
+          cursoId: c.id,
+          materiaId,
+          cargaHoraria,
+          modulosPorSemana,
+        })),
+      });
+      return {
+        asignados: count,
+        omitidos: cursoIds.length - count,
+        total: cursoIds.length,
+      };
+    });
+  }
+
   actualizarCarga(
     cursoId: number,
     materiaId: number,

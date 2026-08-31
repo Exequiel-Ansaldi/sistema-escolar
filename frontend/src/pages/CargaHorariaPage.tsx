@@ -9,7 +9,6 @@ export function CargaHorariaPage() {
   const [cursos, setCursos] = useState<any[]>([]);
   const [materias, setMaterias] = useState<any[]>([]);
   const [grupos, setGrupos] = useState<any[]>([]);
-  const [allAsignaciones, setAllAsignaciones] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [anioFilter, setAnioFilter] = useState('');
   const [divisionFilter, setDivisionFilter] = useState('');
@@ -25,10 +24,9 @@ export function CargaHorariaPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    Promise.all([api.getAllCursos(), api.getAllMaterias(), api.getAllCargaHoraria()]).then(([c, m, r]) => {
+    Promise.all([api.getAllCursos(), api.getAllMaterias()]).then(([c, m]) => {
       setCursos(c.filter((x: any) => x.estado === 'activo'));
       setMaterias(m);
-      setAllAsignaciones(r);
     });
   }, []);
 
@@ -83,30 +81,21 @@ export function CargaHorariaPage() {
       if (formTurnos.length === 0) { setToast({ message: 'Elegí al menos un turno', type: 'error' }); return; }
       if (cursosDestino.length === 0) { setToast({ message: 'No hay cursos que coincidan con el rango elegido', type: 'error' }); return; }
 
-      const cargaHoraria = Math.round(modulosPorSemana * 40 / 60);
-      let asignados = 0;
-      let omitidos = 0;
-      const errores: string[] = [];
-
-      for (const curso of cursosDestino) {
-        const yaExiste = allAsignaciones.find(r => r.materiaId === materiaId && r.cursoId === curso.id);
-        if (yaExiste) { omitidos++; continue; }
-        try {
-          await api.asignarMateriaCurso({ cursoId: curso.id, materiaId, cargaHoraria, modulosPorSemana });
-          setAllAsignaciones(prev => [...prev, { cursoId: curso.id, materiaId }]);
-          asignados++;
-        } catch {
-          errores.push(`${curso.anio}°${curso.division}`);
-        }
+      const cursoIds = cursosDestino.map(c => c.id);
+      let resultado;
+      try {
+        resultado = await api.asignarMateriaCursoMasivo({ cursoIds, materiaId, modulosPorSemana });
+      } catch (err: any) {
+        setToast({ message: `Error al asignar la materia: ${err.message}`, type: 'error' });
+        return;
       }
-
-      if (asignados === 0 && errores.length === 0) {
-        setToast({ message: 'Todos los cursos ya tienen esa materia asignada', type: 'error' });
+      const { asignados, omitidos } = resultado;
+      if (asignados === 0 && omitidos === 0) {
+        setToast({ message: 'No se pudo asignar la materia', type: 'error' });
       } else {
         const partes = [`Asignada en ${asignados} ${asignados === 1 ? 'curso' : 'cursos'}`];
         if (omitidos > 0) partes.push(`${omitidos} ya la tenían`);
-        if (errores.length > 0) partes.push(`${errores.length} con error (${errores.join(', ')})`);
-        setToast({ message: partes.join(' · '), type: errores.length > 0 ? 'error' : 'success' });
+        setToast({ message: partes.join(' · '), type: 'success' });
       }
       setShowForm(false);
       load();
@@ -116,7 +105,6 @@ export function CargaHorariaPage() {
   const quitar = async (row: any) => {
     try {
       await api.quitarMateriaCurso(row.cursoId, row.materiaId);
-      setAllAsignaciones(prev => prev.filter(r => !(r.cursoId === row.cursoId && r.materiaId === row.materiaId)));
       setToast({ message: 'Materia quitada', type: 'success' });
       load();
     } catch (err: any) { setToast({ message: err.message, type: 'error' }); }

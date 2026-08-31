@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../services/api';
 import { FormModal, Toast, Button, Badge, ConfirmModal, Pagination } from '../components/ui';
 import { Users, BookOpen, Trash2, Check, X, CheckCircle } from 'lucide-react';
@@ -53,7 +53,7 @@ export function InscripcionesPage() {
     .filter(c => !fAnio || c.anio === Number(fAnio))
     .map(c => c.division).filter(Boolean))].sort();
 
-  const alumnosFiltrados = alumnos.filter(a => {
+  const alumnosFiltrados = useMemo(() => alumnos.filter(a => {
     if (fDni.trim() && !String(a.dni).includes(fDni.trim())) return false;
     if (fNombre.trim()) {
       const full = `${a.apellido} ${a.nombre}`.toLowerCase();
@@ -64,7 +64,7 @@ export function InscripcionesPage() {
     if (fDivision && (!cursoActual || cursoActual.division !== fDivision)) return false;
     if (cursoId && a.inscripciones?.some((i: any) => i.estado === 'activo' && i.cursoId === Number(cursoId))) return false;
     return true;
-  });
+  }), [alumnos, fDni, fNombre, fAnio, fDivision, cursoId]);
 
   const resetAlumnoFilters = () => { setFDni(''); setFNombre(''); setFAnio(''); setFDivision(''); setAlumnoId(''); };
 

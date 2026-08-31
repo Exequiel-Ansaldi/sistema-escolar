@@ -44,7 +44,7 @@ export function CrudPage({ title, columns, fields, fetchFn, createFn, updateFn, 
       <Pagination page={page} totalPages={totalPages} onPageChange={changePage} />
       {showForm && (
         <FormModal title={editing?.id ? `Editar ${title}` : `Nuevo ${title}`} onClose={closeForm}>
-          <form onSubmit={e => { e.preventDefault(); const fd = new FormData(e.currentTarget); const body: any = {}; fields.forEach(f => { const v = fd.get(f.key); if (f.type === 'number') body[f.key] = v ? Number(v) : undefined; else body[f.key] = v || undefined; }); save(body).then(row => { if (row) onCreated?.(row); }); }}>
+          <form onSubmit={e => { e.preventDefault(); const fd = new FormData(e.currentTarget); const body: any = {}; fields.forEach(f => { const v = fd.get(f.key); if (f.type === 'number') body[f.key] = v ? Number(v) : undefined; else body[f.key] = v || undefined; }); save(body).then(row => { if (row) { try { onCreated?.(row); } catch { /* ignora errores del callback post-creación */ } } }); }}>
             {error && <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
             {fields.map(f => (
               f.options ? (
