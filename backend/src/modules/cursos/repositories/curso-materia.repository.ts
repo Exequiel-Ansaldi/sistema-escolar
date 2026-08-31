@@ -104,14 +104,17 @@ export class CursoMateriaRepository {
         },
         select: { id: true },
       });
-      const { count } = await tx.cursoMateria.createMany({
-        data: sinAsignar.map((c) => ({
-          cursoId: c.id,
-          materiaId,
-          cargaHoraria,
-          modulosPorSemana,
-        })),
-      });
+      const { count } =
+        sinAsignar.length > 0
+          ? await tx.cursoMateria.createMany({
+              data: sinAsignar.map((c) => ({
+                cursoId: c.id,
+                materiaId,
+                cargaHoraria,
+                modulosPorSemana,
+              })),
+            })
+          : { count: 0 };
       return {
         asignados: count,
         omitidos: cursoIds.length - count,
