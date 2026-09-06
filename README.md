@@ -197,11 +197,6 @@ Todas las rutas llevan el prefijo `/api`. Ejemplos:
 | `GET /api/dashboard/promedio-por-anio` | Promedio general por año |
 | `GET /api/reportes/...` | Reportes (PDF) |
 
-## ☁️ Despliegue
-
-- **Backend** → [Render](https://render.com) usando [`render.yaml`](render.yaml) (build: `prisma generate` + `npm run build`; start: `node dist/src/main.js`).
-- **Frontend** → [Vercel](https://vercel.com) usando [`vercel.json`](frontend/vercel.json), que redirige `/api/*` al backend en Render y aplica el SPA catch-all.
-
 ## 📄 Licencia
 
 Sin licencia definida (proyecto privado).
