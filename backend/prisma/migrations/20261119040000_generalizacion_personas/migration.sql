@@ -11,6 +11,9 @@ CREATE TABLE "personas" (
     "estado" TEXT NOT NULL DEFAULT 'activo',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- columna temporal de backfill: empareja 1:1 con usuarios por clave única;
+    -- se elimina al final de esta migración
+    "_usuario_nombre" TEXT,
 
     CONSTRAINT "personas_pkey" PRIMARY KEY ("id")
 );
@@ -41,13 +44,23 @@ ON CONFLICT ("dni") DO NOTHING;
 UPDATE "tutores" t SET "persona_id" = p."id" FROM "personas" p WHERE p."dni" = t."dni";
 ALTER TABLE "tutores" ALTER COLUMN "persona_id" SET NOT NULL;
 
--- ── Backfill usuarios (sin dni; identidad por nombre+apellido) ──
+-- ── Backfill usuarios (sin dni; emparejamiento 1:1 determinista por
+--    nombre_usuario UNIQUE vía columna temporal; soporta homónimos) ──
 ALTER TABLE "usuarios" ADD COLUMN "persona_id" INTEGER;
-INSERT INTO "personas" ("nombre", "apellido", "estado")
-SELECT "nombre", "apellido", CASE WHEN "activo" THEN 'activo' ELSE 'inactivo' END FROM "usuarios";
-UPDATE "usuarios" u SET "persona_id" = p."id" FROM "personas" p
-WHERE p."nombre" = u."nombre" AND p."apellido" = u."apellido" AND p."dni" IS NULL;
+WITH nuevas AS (
+    INSERT INTO "personas" ("nombre", "apellido", "estado", "_usuario_nombre")
+    SELECT "nombre", "apellido",
+           CASE WHEN "activo" THEN 'activo' ELSE 'inactivo' END,
+           "nombre_usuario"
+    FROM "usuarios"
+    RETURNING "id", "_usuario_nombre"
+)
+UPDATE "usuarios" u
+SET "persona_id" = nuevas."id"
+FROM nuevas
+WHERE u."nombre_usuario" = nuevas."_usuario_nombre";
 ALTER TABLE "usuarios" ALTER COLUMN "persona_id" SET NOT NULL;
+ALTER TABLE "personas" DROP COLUMN "_usuario_nombre";
 
 -- ── Limpiar columnas movidas al supertipo ──
 ALTER TABLE "alumnos" DROP COLUMN "dni",
