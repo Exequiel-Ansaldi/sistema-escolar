@@ -6,10 +6,11 @@ import { Prisma } from '@prisma/client';
 export class ReportesRepository {
   constructor(private prisma: PrismaService) {}
 
-  findAlumnoWithCalificaciones(alumnoId: number) {
-    return this.prisma.alumno.findUnique({
+  async findAlumnoWithCalificaciones(alumnoId: number) {
+    const alumno = await this.prisma.alumno.findUnique({
       where: { id: alumnoId },
       include: {
+        persona: true,
         calificaciones: {
           include: { materia: true },
           orderBy: [{ trimestre: 'asc' }, { materia: { nombre: 'asc' } }],
@@ -20,18 +21,35 @@ export class ReportesRepository {
         },
       },
     });
+    if (!alumno) return null;
+    const { persona, ...resto } = alumno;
+    return {
+      ...resto,
+      dni: persona.dni ?? '',
+      nombre: persona.nombre,
+      apellido: persona.apellido,
+    };
   }
 
-  findAlumnoWithInscripciones(alumnoId: number) {
-    return this.prisma.alumno.findUnique({
+  async findAlumnoWithInscripciones(alumnoId: number) {
+    const alumno = await this.prisma.alumno.findUnique({
       where: { id: alumnoId },
       include: {
+        persona: true,
         inscripciones: {
           include: { curso: true },
           where: { estado: 'activo' },
         },
       },
     });
+    if (!alumno) return null;
+    const { persona, ...resto } = alumno;
+    return {
+      ...resto,
+      dni: persona.dni ?? '',
+      nombre: persona.nombre,
+      apellido: persona.apellido,
+    };
   }
 
   findAsistencias(alumnoId: number, where?: Prisma.AsistenciaWhereInput) {
@@ -41,13 +59,13 @@ export class ReportesRepository {
     });
   }
 
-  findCursoWithAll(cursoId: number) {
-    return this.prisma.curso.findUnique({
+  async findCursoWithAll(cursoId: number) {
+    const curso = await this.prisma.curso.findUnique({
       where: { id: cursoId },
       include: {
         inscripciones: {
           include: {
-            alumno: { select: { nombre: true, apellido: true, dni: true } },
+            alumno: { include: { persona: true } },
           },
           where: { estado: 'activo' },
         },
@@ -61,5 +79,19 @@ export class ReportesRepository {
         },
       },
     });
+    if (!curso) return null;
+    const { inscripciones, ...resto } = curso;
+    return {
+      ...resto,
+      inscripciones: inscripciones.map(({ alumno, ...insc }) => ({
+        ...insc,
+        alumno: {
+          id: alumno.id,
+          dni: alumno.persona.dni ?? '',
+          nombre: alumno.persona.nombre,
+          apellido: alumno.persona.apellido,
+        },
+      })),
+    };
   }
 }

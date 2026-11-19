@@ -108,6 +108,7 @@ async function main() {
   await prisma.materia.deleteMany();
   await prisma.usuario.deleteMany();
   await prisma.rol.deleteMany();
+  await prisma.persona.deleteMany();
 
   // ── Roles y usuarios ──
   const rolData = [
@@ -124,13 +125,15 @@ async function main() {
     const rol = await prisma.rol.create({ data: { nombreRol: r.nombreRol } });
     credenciales.push(`${r.nombreUsuario}/${r.contrasena}`);
     const hash = await bcrypt.hash(r.contrasena, 10);
+    const persona = await prisma.persona.create({
+      data: { nombre: r.nombre, apellido: r.apellido },
+    });
     await prisma.usuario.create({
       data: {
         nombreUsuario: r.nombreUsuario,
         contrasena: hash,
-        nombre: r.nombre,
-        apellido: r.apellido,
         rolId: rol.id,
+        personaId: persona.id,
       },
     });
   }
@@ -163,7 +166,7 @@ async function main() {
   const materiaId: Record<string, number> = Object.fromEntries(materias.map(m => [m.nombre, m.id]));
   console.log(`✅ Materias: ${materias.length}`);
 
-  // ── Docentes (60) ──
+  // ── Docentes (60) ── la identidad vive en personas (dni único global) ──
   const docenteRows = Array.from({ length: 60 }, (_, i) => ({
     dni: String(25000000 + i + 1),
     nombre: pick(NOMBRES),
@@ -172,7 +175,25 @@ async function main() {
     email: `docente${i + 1}@escuela.edu`,
     fechaIngreso: new Date(2008 + randomInt(0, 17), randomInt(0, 11), randomInt(1, 28)),
   }));
-  await prisma.docente.createMany({ data: docenteRows });
+  await prisma.persona.createMany({
+    data: docenteRows.map((r) => ({
+      dni: r.dni,
+      nombre: r.nombre,
+      apellido: r.apellido,
+      telefono: r.telefono,
+    })),
+  });
+  const personasDocente = await prisma.persona.findMany({
+    where: { dni: { in: docenteRows.map((r) => r.dni) } },
+  });
+  const personaIdDocentePorDni = new Map(personasDocente.map((p) => [p.dni!, p.id]));
+  await prisma.docente.createMany({
+    data: docenteRows.map((r) => ({
+      email: r.email,
+      fechaIngreso: r.fechaIngreso,
+      personaId: personaIdDocentePorDni.get(r.dni)!,
+    })),
+  });
   const docentes = await prisma.docente.findMany({ orderBy: { id: 'asc' } });
   console.log(`✅ Docentes: ${docentes.length}`);
 
@@ -242,9 +263,35 @@ async function main() {
       alumnoCurso.push(ci);
     }
   }
-  await prisma.alumno.createMany({ data: alumnoRows });
-  const alumnos = await prisma.alumno.findMany({ orderBy: { id: 'asc' } });
-  const inactivos = alumnos.filter(a => a.estado === 'inactivo').length;
+  await prisma.persona.createMany({
+    data: alumnoRows.map((r) => ({
+      dni: r.dni,
+      nombre: r.nombre,
+      apellido: r.apellido,
+      telefono: r.telefono,
+      estado: r.estado,
+    })),
+  });
+  const personasAlumno = await prisma.persona.findMany({
+    where: { dni: { in: alumnoRows.map((r) => r.dni) } },
+  });
+  const personaIdAlumnoPorDni = new Map(personasAlumno.map((p) => [p.dni!, p.id]));
+  await prisma.alumno.createMany({
+    data: alumnoRows.map((r) => ({
+      nacimiento: r.nacimiento,
+      direccion: r.direccion,
+      fechaIngreso: r.fechaIngreso,
+      fechaEgreso: r.fechaEgreso,
+      personaId: personaIdAlumnoPorDni.get(r.dni)!,
+    })),
+  });
+  const alumnosBase = await prisma.alumno.findMany({
+    orderBy: { id: 'asc' },
+    include: { persona: true },
+  });
+  // estado ahora vive en personas; se proyecta plano para el resto del seed
+  const alumnos = alumnosBase.map((a) => ({ ...a, estado: a.persona.estado }));
+  const inactivos = alumnos.filter((a) => a.estado === 'inactivo').length;
   console.log(`✅ Alumnos: ${alumnos.length} (${inactivos} inactivos)`);
 
   // ── Inscripciones ──
@@ -520,7 +567,35 @@ async function main() {
       });
     }
   }
-  await prisma.tutor.createMany({ data: tutorRows });
+  // La identidad del tutor vive en personas: mismo dni = misma persona
+  // (puede ser tutor de varios alumnos). Los dnis que ya existen (docente/alumno)
+  // no se recrean: el tutor se engancha a esa persona existente.
+  const personaTutorPorDni = new Map<string, { dni: string; nombre: string; apellido: string }>();
+  for (const t of tutorRows) {
+    if (!personaTutorPorDni.has(t.dni)) {
+      personaTutorPorDni.set(t.dni, { dni: t.dni, nombre: t.nombre, apellido: t.apellido });
+    }
+  }
+  const dnisTutor = [...personaTutorPorDni.keys()];
+  const dnisTutorExistentes = await prisma.persona.findMany({
+    where: { dni: { in: dnisTutor } },
+    select: { dni: true },
+  });
+  const yaExisten = new Set(dnisTutorExistentes.map((p) => p.dni));
+  const dnisTutorNuevos = dnisTutor.filter((d) => !yaExisten.has(d));
+  await prisma.persona.createMany({
+    data: dnisTutorNuevos.map((d) => personaTutorPorDni.get(d)!),
+  });
+  const personasTutor = await prisma.persona.findMany({
+    where: { dni: { in: dnisTutor } },
+  });
+  const personaIdTutorPorDni = new Map(personasTutor.map((p) => [p.dni!, p.id]));
+  await prisma.tutor.createMany({
+    data: tutorRows.map((t) => ({
+      alumnoId: t.alumnoId,
+      personaId: personaIdTutorPorDni.get(t.dni)!,
+    })),
+  });
   console.log(`✅ Tutores: ${tutorRows.length}`);
 
   console.log('\n🎉 Seed completado exitosamente');

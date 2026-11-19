@@ -12,6 +12,36 @@ import type { PaginatedResult } from '../../../common/interfaces/paginated-resul
 
 export type DatosCrearAsistencia = Omit<CrearAsistenciaDto, 'justificada'>;
 
+type AlumnoAnidado = {
+  id: number;
+  persona: {
+    dni: string | null;
+    nombre: string;
+    apellido: string;
+    telefono: string | null;
+    estado: string;
+  };
+  nacimiento: Date;
+  direccion: string;
+  fechaIngreso: Date;
+  fechaEgreso: Date | null;
+};
+
+function alumnoPlano(a: AlumnoAnidado) {
+  return {
+    id: a.id,
+    dni: a.persona.dni ?? '',
+    nombre: a.persona.nombre,
+    apellido: a.persona.apellido,
+    nacimiento: a.nacimiento.toISOString(),
+    direccion: a.direccion,
+    telefono: a.persona.telefono ?? '',
+    estado: a.persona.estado,
+    fechaIngreso: a.fechaIngreso.toISOString(),
+    fechaEgreso: a.fechaEgreso ? a.fechaEgreso.toISOString() : null,
+  };
+}
+
 @Injectable()
 export class AsistenciaRepository {
   constructor(private prisma: PrismaService) {}
@@ -34,8 +64,8 @@ export class AsistenciaRepository {
     fin.setUTCHours(23, 59, 59, 999);
     const inscripciones = await this.prisma.inscripcion.findMany({
       where: { cursoId, estado: 'activo' },
-      include: { alumno: true },
-      orderBy: { alumno: { apellido: 'asc' } },
+      include: { alumno: { include: { persona: true } } },
+      orderBy: { alumno: { persona: { apellido: 'asc' } } },
     });
     const asistencias = await this.prisma.asistencia.findMany({
       where: {
@@ -45,14 +75,7 @@ export class AsistenciaRepository {
     });
     return inscripciones.map((insc) => {
       const rec = asistencias.find((a) => a.alumnoId === insc.alumnoId);
-      const alumno = {
-        ...insc.alumno,
-        nacimiento: insc.alumno.nacimiento.toISOString(),
-        fechaIngreso: insc.alumno.fechaIngreso.toISOString(),
-        fechaEgreso: insc.alumno.fechaEgreso
-          ? insc.alumno.fechaEgreso.toISOString()
-          : null,
-      };
+      const alumno = alumnoPlano(insc.alumno);
       return {
         id: rec?.id ?? null,
         alumnoId: insc.alumnoId,
@@ -81,11 +104,13 @@ export class AsistenciaRepository {
       ...(query
         ? {
             alumno: {
-              OR: [
-                { apellido: { contains: query, mode: 'insensitive' } },
-                { nombre: { contains: query, mode: 'insensitive' } },
-                ...(/^\d+$/.test(query) ? [{ dni: { contains: query } }] : []),
-              ],
+              persona: {
+                OR: [
+                  { apellido: { contains: query, mode: 'insensitive' } },
+                  { nombre: { contains: query, mode: 'insensitive' } },
+                  ...(/^\d+$/.test(query) ? [{ dni: { contains: query } }] : []),
+                ],
+              },
             },
           }
         : {}),
@@ -103,8 +128,8 @@ export class AsistenciaRepository {
     const [inscripciones, total] = await Promise.all([
       this.prisma.inscripcion.findMany({
         where: whereInscripciones,
-        include: { alumno: true, curso: true },
-        orderBy: { alumno: { apellido: 'asc' } },
+        include: { alumno: { include: { persona: true } }, curso: true },
+        orderBy: { alumno: { persona: { apellido: 'asc' } } },
         skip,
         take: limit,
       }),
@@ -119,14 +144,7 @@ export class AsistenciaRepository {
     return {
       data: inscripciones.map((insc) => {
         const rec = asistencias.find((a) => a.alumnoId === insc.alumnoId);
-        const alumno = {
-          ...insc.alumno,
-          nacimiento: insc.alumno.nacimiento.toISOString(),
-          fechaIngreso: insc.alumno.fechaIngreso.toISOString(),
-          fechaEgreso: insc.alumno.fechaEgreso
-            ? insc.alumno.fechaEgreso.toISOString()
-            : null,
-        };
+        const alumno = alumnoPlano(insc.alumno);
         return {
           id: rec?.id ?? null,
           alumnoId: insc.alumnoId,

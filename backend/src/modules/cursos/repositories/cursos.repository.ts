@@ -13,7 +13,10 @@ import type { PaginatedResult } from '../../../common/interfaces/paginated-resul
 
 type CursoConRelaciones = Prisma.CursoGetPayload<{
   include: {
-    inscripciones: { include: { alumno: true }; where: { estado: string } };
+    inscripciones: {
+      include: { alumno: { include: { persona: true } } };
+      where: { estado: string };
+    };
     materias: { include: { materia: true } };
   };
 }>;
@@ -29,13 +32,13 @@ function serializarCurso(curso: CursoConRelaciones): CursoDetalleResponse {
     estado: i.estado,
     alumno: {
       id: i.alumno.id,
-      dni: i.alumno.dni,
-      nombre: i.alumno.nombre,
-      apellido: i.alumno.apellido,
+      dni: i.alumno.persona.dni ?? '',
+      nombre: i.alumno.persona.nombre,
+      apellido: i.alumno.persona.apellido,
       nacimiento: i.alumno.nacimiento.toISOString(),
       direccion: i.alumno.direccion,
-      telefono: i.alumno.telefono,
-      estado: i.alumno.estado,
+      telefono: i.alumno.persona.telefono ?? '',
+      estado: i.alumno.persona.estado,
       fechaIngreso: i.alumno.fechaIngreso.toISOString(),
       fechaEgreso: i.alumno.fechaEgreso
         ? i.alumno.fechaEgreso.toISOString()
@@ -99,7 +102,7 @@ export class CursosRepository {
       where: { id },
       include: {
         inscripciones: {
-          include: { alumno: true },
+          include: { alumno: { include: { persona: true } } },
           where: { estado: 'activo' },
         },
         materias: {

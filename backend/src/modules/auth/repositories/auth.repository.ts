@@ -8,7 +8,7 @@ export class AuthRepository {
   async findByNombreUsuario(nombreUsuario: string) {
     return this.prisma.usuario.findUnique({
       where: { nombreUsuario },
-      include: { rol: true },
+      include: { rol: true, persona: true },
     });
   }
 }

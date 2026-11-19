@@ -42,7 +42,7 @@ export class ModulosMensualesRepository {
       this.prisma.moduloMensual.findMany({
         where,
         include: {
-          docente: true,
+          docente: { include: { persona: true } },
           materia: true,
           curso: true,
           noDictados: true,
@@ -62,7 +62,16 @@ export class ModulosMensualesRepository {
       ...r,
       mes: r.mes.toISOString(),
       docente: r.docente
-        ? { ...r.docente, fechaIngreso: r.docente.fechaIngreso.toISOString() }
+        ? {
+            id: r.docente.id,
+            dni: r.docente.persona.dni ?? '',
+            nombre: r.docente.persona.nombre,
+            apellido: r.docente.persona.apellido,
+            telefono: r.docente.persona.telefono ?? '',
+            email: r.docente.email,
+            fechaIngreso: r.docente.fechaIngreso.toISOString(),
+            estado: r.docente.persona.estado,
+          }
         : r.docente,
       noDictados: r.noDictados ?? undefined,
     }));

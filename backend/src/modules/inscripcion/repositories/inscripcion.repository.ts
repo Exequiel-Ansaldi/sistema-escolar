@@ -6,7 +6,7 @@ import type { InscripcionResponse } from '../dto/inscripcion-response';
 import type { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
 
 type InscripcionConRelaciones = Prisma.InscripcionGetPayload<{
-  include: { alumno: true; curso: true };
+  include: { alumno: { include: { persona: true } }; curso: true };
 }>;
 
 function serializarInscripcion(
@@ -20,13 +20,13 @@ function serializarInscripcion(
     estado: insc.estado,
     alumno: {
       id: insc.alumno.id,
-      dni: insc.alumno.dni,
-      nombre: insc.alumno.nombre,
-      apellido: insc.alumno.apellido,
+      dni: insc.alumno.persona.dni ?? '',
+      nombre: insc.alumno.persona.nombre,
+      apellido: insc.alumno.persona.apellido,
       nacimiento: insc.alumno.nacimiento.toISOString(),
       direccion: insc.alumno.direccion,
-      telefono: insc.alumno.telefono,
-      estado: insc.alumno.estado,
+      telefono: insc.alumno.persona.telefono ?? '',
+      estado: insc.alumno.persona.estado,
       fechaIngreso: insc.alumno.fechaIngreso.toISOString(),
       fechaEgreso: insc.alumno.fechaEgreso
         ? insc.alumno.fechaEgreso.toISOString()
@@ -63,7 +63,7 @@ export class InscripcionRepository {
         skip,
         take: limit,
         include: {
-          alumno: true,
+          alumno: { include: { persona: true } },
           curso: true,
         },
         orderBy: { fechaInscripcion: 'desc' },

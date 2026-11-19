@@ -38,7 +38,7 @@ export class MateriasRepository {
   async findById(id: number): Promise<MateriaDetalleResponse | null> {
     const materia = await this.prisma.materia.findUnique({
       where: { id },
-      include: { docentes: { include: { docente: true } } },
+      include: { docentes: { include: { docente: { include: { persona: true } } } } },
     });
     if (!materia) return null;
     const docentes = (materia.docentes ?? []).map((dm) => ({
@@ -47,13 +47,13 @@ export class MateriasRepository {
       docente: dm.docente
         ? {
             id: dm.docente.id,
-            dni: dm.docente.dni,
-            nombre: dm.docente.nombre,
-            apellido: dm.docente.apellido,
-            telefono: dm.docente.telefono,
+            dni: dm.docente.persona.dni ?? '',
+            nombre: dm.docente.persona.nombre,
+            apellido: dm.docente.persona.apellido,
+            telefono: dm.docente.persona.telefono ?? '',
             email: dm.docente.email,
             fechaIngreso: dm.docente.fechaIngreso.toISOString(),
-            estado: dm.docente.estado,
+            estado: dm.docente.persona.estado,
           }
         : undefined,
     }));

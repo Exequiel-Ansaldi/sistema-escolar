@@ -12,7 +12,7 @@ import type { LicenciaResponse } from '../../licencias/dto/licencia-response';
 import type { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
 
 type DocenteConRelaciones = Prisma.DocenteGetPayload<{
-  include: { materias: { include: { materia: true } }; licencias: true };
+  include: { persona: true; materias: { include: { materia: true } }; licencias: true };
 }>;
 
 function serializarDocente(
@@ -37,16 +37,41 @@ function serializarDocente(
   }));
   return {
     id: docente.id,
-    dni: docente.dni,
-    nombre: docente.nombre,
-    apellido: docente.apellido,
-    telefono: docente.telefono,
+    dni: docente.persona.dni ?? '',
+    nombre: docente.persona.nombre,
+    apellido: docente.persona.apellido,
+    telefono: docente.persona.telefono ?? '',
     email: docente.email,
     fechaIngreso: docente.fechaIngreso.toISOString(),
-    estado: docente.estado,
+    estado: docente.persona.estado,
     materias,
     licencias,
   };
+}
+
+function serializarDocenteSimple(d: Prisma.DocenteGetPayload<{ include: { persona: true } }>): DocenteResponse {
+  return {
+    id: d.id,
+    dni: d.persona.dni ?? '',
+    nombre: d.persona.nombre,
+    apellido: d.persona.apellido,
+    telefono: d.persona.telefono ?? '',
+    email: d.email,
+    fechaIngreso: d.fechaIngreso.toISOString(),
+    estado: d.persona.estado,
+  };
+}
+
+// Campos de identidad que viven en el supertipo personas
+function partirPersonaDocente<T extends Partial<CrearDocenteDto>>(data: T) {
+  const { dni, nombre, apellido, telefono, estado, ...resto } = data;
+  const persona: Partial<Prisma.PersonaCreateInput> = {};
+  if (dni !== undefined) persona.dni = dni;
+  if (nombre !== undefined) persona.nombre = nombre;
+  if (apellido !== undefined) persona.apellido = apellido;
+  if (telefono !== undefined) persona.telefono = telefono;
+  if (estado !== undefined) persona.estado = estado;
+  return { persona, resto };
 }
 
 @Injectable()
@@ -60,43 +85,41 @@ export class DocentesRepository {
   ): Promise<PaginatedResult<DocenteResponse>> {
     const skip = (page - 1) * limit;
     const where: Prisma.DocenteWhereInput = {
-      estado: 'activo',
-      ...(search
-        ? {
-            OR: [
-              { nombre: { contains: search, mode: 'insensitive' } },
-              { apellido: { contains: search, mode: 'insensitive' } },
-              { dni: { contains: search } },
-            ],
-          }
-        : {}),
+      persona: {
+        estado: 'activo',
+        ...(search
+          ? {
+              OR: [
+                { nombre: { contains: search, mode: 'insensitive' } },
+                { apellido: { contains: search, mode: 'insensitive' } },
+                { dni: { contains: search } },
+              ],
+            }
+          : {}),
+      },
     };
     const [rows, total] = await Promise.all([
       this.prisma.docente.findMany({
         skip,
         take: limit,
         where,
-        orderBy: { apellido: 'asc' },
+        orderBy: { persona: { apellido: 'asc' } },
+        include: { persona: true },
       }),
       this.prisma.docente.count({ where }),
     ]);
-    const data = rows.map((d) => ({
-      id: d.id,
-      dni: d.dni,
-      nombre: d.nombre,
-      apellido: d.apellido,
-      telefono: d.telefono,
-      email: d.email,
-      fechaIngreso: d.fechaIngreso.toISOString(),
-      estado: d.estado,
-    }));
+    const data = rows.map(serializarDocenteSimple);
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findById(id: number): Promise<DocenteDetalleResponse | null> {
     const docente = await this.prisma.docente.findUnique({
       where: { id },
-      include: { materias: { include: { materia: true } }, licencias: true },
+      include: {
+        persona: true,
+        materias: { include: { materia: true } },
+        licencias: true,
+      },
     });
     return docente ? serializarDocente(docente) : null;
   }
@@ -106,27 +129,54 @@ export class DocentesRepository {
   }
 
   findByDni(dni: string) {
-    return this.prisma.docente.findUnique({ where: { dni } });
+    return this.prisma.docente.findFirst({ where: { persona: { dni } } });
   }
 
-  create(data: CrearDocenteDto) {
-    return this.prisma.docente.create({
-      data: { ...data, fechaIngreso: new Date(data.fechaIngreso) },
+  async create(data: CrearDocenteDto): Promise<DocenteResponse> {
+    const { persona, resto } = partirPersonaDocente(data);
+    const creado = await this.prisma.docente.create({
+      data: {
+        email: resto.email,
+        fechaIngreso: new Date(resto.fechaIngreso),
+        persona: { create: persona as Prisma.PersonaCreateInput },
+      },
+      include: { persona: true },
     });
+    return serializarDocenteSimple(creado);
   }
 
-  update(id: number, data: ActualizarDocenteDto) {
-    const updateData: Prisma.DocenteUpdateInput = { ...data };
-    if (data.fechaIngreso)
-      updateData.fechaIngreso = new Date(data.fechaIngreso);
-    return this.prisma.docente.update({ where: { id }, data: updateData });
-  }
-
-  disable(id: number) {
-    return this.prisma.docente.update({
+  async update(id: number, data: ActualizarDocenteDto): Promise<DocenteResponse> {
+    const { persona, resto } = partirPersonaDocente(data);
+    const updateData: Prisma.DocenteUpdateInput = {};
+    if (resto.email !== undefined) updateData.email = resto.email;
+    if (resto.fechaIngreso)
+      updateData.fechaIngreso = new Date(resto.fechaIngreso);
+    const personaPayload: Prisma.PersonaUpdateInput = {};
+    if (persona.dni !== undefined) personaPayload.dni = persona.dni;
+    if (persona.nombre !== undefined) personaPayload.nombre = persona.nombre;
+    if (persona.apellido !== undefined)
+      personaPayload.apellido = persona.apellido;
+    if (persona.telefono !== undefined)
+      personaPayload.telefono = persona.telefono;
+    if (persona.estado !== undefined) personaPayload.estado = persona.estado;
+    if (Object.keys(personaPayload).length > 0) {
+      updateData.persona = { update: personaPayload };
+    }
+    const actualizado = await this.prisma.docente.update({
       where: { id },
-      data: { estado: 'inactivo' },
+      data: updateData,
+      include: { persona: true },
     });
+    return serializarDocenteSimple(actualizado);
+  }
+
+  async disable(id: number): Promise<DocenteResponse> {
+    const actualizado = await this.prisma.docente.update({
+      where: { id },
+      data: { persona: { update: { estado: 'inactivo' } } },
+      include: { persona: true },
+    });
+    return serializarDocenteSimple(actualizado);
   }
 
   asignarMateria(docenteId: number, materiaId: number) {

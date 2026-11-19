@@ -8,10 +8,31 @@ import type { InscripcionResponse } from '../../inscripcion/dto/inscripcion-resp
 import type { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
 
 type AlumnoConRelaciones = Prisma.AlumnoGetPayload<{
-  include: { inscripciones: { include: { curso: true } }; tutores: true };
+  include: {
+    persona: true;
+    inscripciones: { include: { curso: true } };
+    tutores: { include: { persona: true } };
+  };
 }>;
 
-function serializarAlumno(alumno: AlumnoConRelaciones): AlumnoResponse {
+type TutorAnidado = AlumnoConRelaciones['tutores'][number];
+
+function serializarTutor(tutor: TutorAnidado) {
+  return {
+    id: tutor.id,
+    alumnoId: tutor.alumnoId,
+    nombre: tutor.persona.nombre,
+    apellido: tutor.persona.apellido,
+    dni: tutor.persona.dni ?? '',
+  };
+}
+
+function serializarAlumno(
+  alumno: Omit<AlumnoConRelaciones, 'tutores' | 'inscripciones'> & {
+    tutores?: AlumnoConRelaciones['tutores'];
+    inscripciones?: AlumnoConRelaciones['inscripciones'];
+  },
+): AlumnoResponse {
   const inscripciones: InscripcionResponse[] = (alumno.inscripciones ?? []).map(
     (i) => ({
       id: i.id,
@@ -24,28 +45,30 @@ function serializarAlumno(alumno: AlumnoConRelaciones): AlumnoResponse {
   );
   return {
     id: alumno.id,
-    dni: alumno.dni,
-    nombre: alumno.nombre,
-    apellido: alumno.apellido,
+    dni: alumno.persona.dni ?? '',
+    nombre: alumno.persona.nombre,
+    apellido: alumno.persona.apellido,
     nacimiento: alumno.nacimiento.toISOString(),
     direccion: alumno.direccion,
-    telefono: alumno.telefono,
-    estado: alumno.estado,
+    telefono: alumno.persona.telefono ?? '',
+    estado: alumno.persona.estado,
     fechaIngreso: alumno.fechaIngreso.toISOString(),
     fechaEgreso: alumno.fechaEgreso ? alumno.fechaEgreso.toISOString() : null,
     inscripciones,
-    tutores: (
-      alumno as {
-        tutores?: {
-          id: number;
-          alumnoId: number;
-          nombre: string;
-          apellido: string;
-          dni: string;
-        }[];
-      }
-    ).tutores,
+    tutores: (alumno.tutores ?? []).map(serializarTutor),
   };
+}
+
+// Campos de identidad que viven en el supertipo personas
+function partirPersona<T extends Partial<CrearAlumnoDto>>(data: T) {
+  const { dni, nombre, apellido, telefono, estado, ...resto } = data;
+  const persona: Partial<Prisma.PersonaCreateInput> = {};
+  if (dni !== undefined) persona.dni = dni;
+  if (nombre !== undefined) persona.nombre = nombre;
+  if (apellido !== undefined) persona.apellido = apellido;
+  if (telefono !== undefined) persona.telefono = telefono;
+  if (estado !== undefined) persona.estado = estado;
+  return { persona, resto };
 }
 
 @Injectable()
@@ -59,24 +82,29 @@ export class AlumnosRepository {
   ): Promise<PaginatedResult<AlumnoResponse>> {
     const skip = (page - 1) * limit;
     const where: Prisma.AlumnoWhereInput = {
-      estado: 'activo',
-      ...(search
-        ? {
-            OR: [
-              { nombre: { contains: search, mode: 'insensitive' } },
-              { apellido: { contains: search, mode: 'insensitive' } },
-              { dni: { contains: search } },
-            ],
-          }
-        : {}),
+      persona: {
+        estado: 'activo',
+        ...(search
+          ? {
+              OR: [
+                { nombre: { contains: search, mode: 'insensitive' } },
+                { apellido: { contains: search, mode: 'insensitive' } },
+                { dni: { contains: search } },
+              ],
+            }
+          : {}),
+      },
     };
     const [rows, total] = await Promise.all([
       this.prisma.alumno.findMany({
         skip,
         take: limit,
         where,
-        orderBy: { apellido: 'asc' },
-        include: { inscripciones: { include: { curso: true } } },
+        orderBy: { persona: { apellido: 'asc' } },
+        include: {
+          persona: true,
+          inscripciones: { include: { curso: true } },
+        },
       }),
       this.prisma.alumno.count({ where }),
     ]);
@@ -88,45 +116,70 @@ export class AlumnosRepository {
     const alumno = await this.prisma.alumno.findUnique({
       where: { id },
       include: {
+        persona: true,
         inscripciones: { include: { curso: true } },
-        tutores: true,
+        tutores: { include: { persona: true } },
       },
     });
     return alumno ? serializarAlumno(alumno) : null;
   }
 
   findByDni(dni: string) {
-    return this.prisma.alumno.findUnique({ where: { dni } });
+    return this.prisma.alumno.findFirst({ where: { persona: { dni } } });
   }
 
-  create(data: CrearAlumnoDto) {
-    return this.prisma.alumno.create({
+  async create(data: CrearAlumnoDto): Promise<AlumnoResponse> {
+    const { persona, resto } = partirPersona(data);
+    const creado = await this.prisma.alumno.create({
       data: {
-        ...data,
-        nacimiento: new Date(data.nacimiento),
-        fechaIngreso: new Date(data.fechaIngreso),
-        fechaEgreso: data.fechaEgreso ? new Date(data.fechaEgreso) : null,
+        nacimiento: new Date(resto.nacimiento),
+        direccion: resto.direccion,
+        fechaIngreso: new Date(resto.fechaIngreso),
+        fechaEgreso: resto.fechaEgreso ? new Date(resto.fechaEgreso) : null,
+        persona: { create: persona as Prisma.PersonaCreateInput },
       },
+      include: { persona: true },
     });
+    return serializarAlumno(creado);
   }
 
-  update(id: number, data: ActualizarAlumnoDto) {
-    const updateData: Prisma.AlumnoUpdateInput = { ...data };
-    if (data.nacimiento) updateData.nacimiento = new Date(data.nacimiento);
-    if (data.fechaIngreso)
-      updateData.fechaIngreso = new Date(data.fechaIngreso);
-    if (data.fechaEgreso !== undefined) {
-      updateData.fechaEgreso = data.fechaEgreso
-        ? new Date(data.fechaEgreso)
+  async update(id: number, data: ActualizarAlumnoDto): Promise<AlumnoResponse> {
+    const { persona, resto } = partirPersona(data);
+    const updateData: Prisma.AlumnoUpdateInput = {};
+    if (resto.nacimiento) updateData.nacimiento = new Date(resto.nacimiento);
+    if (resto.direccion !== undefined) updateData.direccion = resto.direccion;
+    if (resto.fechaIngreso)
+      updateData.fechaIngreso = new Date(resto.fechaIngreso);
+    if (resto.fechaEgreso !== undefined) {
+      updateData.fechaEgreso = resto.fechaEgreso
+        ? new Date(resto.fechaEgreso)
         : null;
     }
-    return this.prisma.alumno.update({ where: { id }, data: updateData });
+    const personaPayload: Prisma.PersonaUpdateInput = {};
+    if (persona.dni !== undefined) personaPayload.dni = persona.dni;
+    if (persona.nombre !== undefined) personaPayload.nombre = persona.nombre;
+    if (persona.apellido !== undefined)
+      personaPayload.apellido = persona.apellido;
+    if (persona.telefono !== undefined)
+      personaPayload.telefono = persona.telefono;
+    if (persona.estado !== undefined) personaPayload.estado = persona.estado;
+    if (Object.keys(personaPayload).length > 0) {
+      updateData.persona = { update: personaPayload };
+    }
+    const actualizado = await this.prisma.alumno.update({
+      where: { id },
+      data: updateData,
+      include: { persona: true },
+    });
+    return serializarAlumno(actualizado);
   }
 
-  disable(id: number) {
-    return this.prisma.alumno.update({
+  async disable(id: number): Promise<AlumnoResponse> {
+    const actualizado = await this.prisma.alumno.update({
       where: { id },
-      data: { estado: 'inactivo' },
+      data: { persona: { update: { estado: 'inactivo' } } },
+      include: { persona: true },
     });
+    return serializarAlumno(actualizado);
   }
 }

@@ -17,7 +17,7 @@ export class AuthService {
       dto.nombreUsuario,
     );
 
-    if (!usuario || !usuario.activo) {
+    if (!usuario || usuario.persona.estado !== 'activo') {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
@@ -36,8 +36,8 @@ export class AuthService {
       usuario: {
         id: usuario.id,
         nombreUsuario: usuario.nombreUsuario,
-        nombre: usuario.nombre,
-        apellido: usuario.apellido,
+        nombre: usuario.persona.nombre,
+        apellido: usuario.persona.apellido,
         rol: usuario.rol.nombreRol,
       },
     };

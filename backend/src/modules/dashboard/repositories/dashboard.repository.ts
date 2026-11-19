@@ -6,16 +6,16 @@ export class DashboardRepository {
   constructor(private prisma: PrismaService) {}
 
   countAlumnosActivos() {
-    return this.prisma.alumno.count({ where: { estado: 'activo' } });
+    return this.prisma.alumno.count({ where: { persona: { estado: 'activo' } } });
   }
   countDocentesActivos() {
-    return this.prisma.docente.count({ where: { estado: 'activo' } });
+    return this.prisma.docente.count({ where: { persona: { estado: 'activo' } } });
   }
   countCursosActivos() {
     return this.prisma.curso.count({ where: { estado: 'activo' } });
   }
   countUsuariosActivos() {
-    return this.prisma.usuario.count({ where: { activo: true } });
+    return this.prisma.usuario.count({ where: { persona: { estado: 'activo' } } });
   }
 
   findAsistenciasByFecha(start: Date, end: Date) {
@@ -94,14 +94,25 @@ export class DashboardRepository {
     });
   }
 
-  findUltimasAsistencias(limite: number) {
-    return this.prisma.asistencia.findMany({
+  async findUltimasAsistencias(limite: number) {
+    const rows = await this.prisma.asistencia.findMany({
       take: limite,
       orderBy: { fecha: 'desc' },
-      include: {
-        alumno: { select: { nombre: true, apellido: true, dni: true } },
-      },
+      include: { alumno: { include: { persona: true } } },
     });
+    return rows.map((r) => ({
+      id: r.id,
+      alumnoId: r.alumnoId,
+      fecha: r.fecha.toISOString(),
+      estado: r.estado,
+      justificacion: r.justificacion,
+      observacion: r.observacion,
+      alumno: {
+        nombre: r.alumno.persona.nombre,
+        apellido: r.alumno.persona.apellido,
+        dni: r.alumno.persona.dni ?? '',
+      },
+    }));
   }
 
   findMaterias() {

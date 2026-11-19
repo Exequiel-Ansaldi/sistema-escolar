@@ -13,13 +13,30 @@ model Rol {
   usuarios  Usuario[]
 }
 
+model Persona {
+  id        Int      @id @default(autoincrement())
+  dni       String?  @unique
+  nombre    String
+  apellido  String
+  telefono  String?
+  estado    String   @default("activo")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  alumnos  Alumno[]
+  docentes Docente[]
+  tutores  Tutor[]
+  usuarios Usuario[]
+
+  @@map("personas")
+}
+
 model Usuario {
   id            Int      @id @default(autoincrement())
+  personaId     Int      @unique @map("persona_id")
+  persona       Persona  @relation(fields: [personaId], references: [id])
   nombreUsuario String   @unique @map("nombre_usuario")
   contrasena    String   @map("contraseña")
-  activo        Boolean  @default(true)
-  nombre        String
-  apellido      String
   rolId         Int      @map("rol_id")
   rol           Rol      @relation(fields: [rolId], references: [id])
   createdAt     DateTime @default(now()) @map("created_at")
@@ -29,16 +46,13 @@ model Usuario {
 }
 
 model Alumno {
-  id          Int      @id @default(autoincrement())
-  dni         String   @unique
-  nombre      String
-  apellido    String
-  nacimiento  DateTime
-  direccion   String
-  telefono    String
-  estado      String   @default("activo")
-  fechaIngreso DateTime @map("fecha_ingreso")
-  fechaEgreso DateTime? @map("fecha_egreso")
+  id           Int       @id @default(autoincrement())
+  personaId    Int       @unique @map("persona_id")
+  persona      Persona   @relation(fields: [personaId], references: [id])
+  nacimiento   DateTime
+  direccion    String
+  fechaIngreso DateTime  @map("fecha_ingreso")
+  fechaEgreso  DateTime? @map("fecha_egreso")
 
   inscripciones Inscripcion[]
   asistencias   Asistencia[]
@@ -83,14 +97,11 @@ model Inscripcion {
 }
 
 model Docente {
-  id          Int       @id @default(autoincrement())
-  dni         String    @unique
-  nombre      String
-  apellido    String
-  telefono    String
-  email       String    @unique
+  id           Int      @id @default(autoincrement())
+  personaId    Int      @unique @map("persona_id")
+  persona      Persona  @relation(fields: [personaId], references: [id])
+  email        String   @unique
   fechaIngreso DateTime @map("fecha_ingreso")
-  estado      String    @default("activo")
 
   materias         DocenteMateria[]
   licencias        Licencia[]
@@ -204,11 +215,10 @@ model Seguimiento {
 }
 
 model Tutor {
-  id       Int    @id @default(autoincrement())
-  alumnoId Int    @map("alumno_id")
-  nombre   String
-  apellido String
-  dni      String
+  id        Int     @id @default(autoincrement())
+  personaId Int     @map("persona_id")
+  persona   Persona @relation(fields: [personaId], references: [id])
+  alumnoId  Int     @map("alumno_id")
 
   alumno Alumno @relation(fields: [alumnoId], references: [id])
 
