@@ -3,6 +3,7 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { InscripcionRepository } from './repositories/inscripcion.repository';
 import { AlumnosRepository } from '../alumnos/repositories/alumnos.repository';
 import { CursosRepository } from '../cursos/repositories/cursos.repository';
@@ -38,7 +39,16 @@ export class InscripcionService {
     if (existente)
       throw new ConflictException('El alumno ya está inscrito en este curso');
 
-    return this.inscripcionRepository.create(dto);
+    try {
+      return await this.inscripcionRepository.create(dto);
+    } catch (e) {
+      // Carrera paralela: dos inscripciones simultáneas del mismo par superan
+      // el chequeo previo; la restricción única de la base define el 409.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new ConflictException('El alumno ya está inscrito en este curso');
+      }
+      throw e;
+    }
   }
 
   async desinscribir(alumnoId: number, cursoId: number) {

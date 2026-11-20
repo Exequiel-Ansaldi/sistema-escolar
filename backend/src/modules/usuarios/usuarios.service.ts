@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { UsuariosRepository } from './repositories/usuarios.repository';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
@@ -20,10 +21,19 @@ export class UsuariosService {
 
   async create(dto: CrearUsuarioDto) {
     const hashedPassword = await bcrypt.hash(dto.contrasena, 10);
-    return this.usuariosRepository.create({
-      ...dto,
-      contrasena: hashedPassword,
-    });
+    try {
+      return await this.usuariosRepository.create({
+        ...dto,
+        contrasena: hashedPassword,
+      });
+    } catch (e) {
+      // La restricción única de nombre_usuario vive en la base; un duplicado
+      // (simultáneo o no) responde 409, no un 500 de constraint.
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new ConflictException('Ya existe un usuario con ese nombre de usuario');
+      }
+      throw e;
+    }
   }
 
   async update(id: number, dto: ActualizarUsuarioDto) {
