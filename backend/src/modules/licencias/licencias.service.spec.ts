@@ -209,5 +209,12 @@ describe('LicenciasService (caracterización)', () => {
         service.update(1, { estado: 'aprobada' } as ActualizarLicenciaDto),
       ).rejects.toThrow(BadRequestException);
     });
+
+    it('update permite transición a sí mismo (no-op, el form del frontend guarda el estado actual)', async () => {
+      const { repo, registradas } = dobleLicencias([lic({ id: 1, estado: 'aprobada' })]);
+      const service = new LicenciasService(repo);
+      await service.update(1, { estado: 'aprobada' } as ActualizarLicenciaDto);
+      expect(registradas).toHaveLength(1);
+    });
   });
 });

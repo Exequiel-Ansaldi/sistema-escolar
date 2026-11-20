@@ -36,7 +36,9 @@ export function puedeTransitar(
   actual: EstadoLicencia,
   siguiente: EstadoLicencia,
 ): boolean {
-  return TRANSICIONES[actual].includes(siguiente);
+  // La transición a sí mismo es un no-op (el form del frontend guarda el
+  // estado actual en cada edición) y siempre está permitida.
+  return actual === siguiente || TRANSICIONES[actual].includes(siguiente);
 }
 
 export function esEstadoValido(valor: string): valor is EstadoLicencia {
