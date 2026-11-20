@@ -1,14 +1,14 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { LicenciasRepository } from './repositories/licencias.repository';
 import { CrearLicenciaDto } from './dto/crear-licencia.dto';
 import { ActualizarLicenciaDto } from './dto/actualizar-licencia.dto';
 import type { LicenciaResponse } from './dto/licencia-response';
 import type { PaginatedResult } from '../../common/interfaces/paginated-result.interface';
+import {
+  ESTADOS_FINALIZABLES,
+  estadoEfectivo,
+} from './licencias-estado';
 
 @Injectable()
 export class LicenciasService {
@@ -25,18 +25,12 @@ export class LicenciasService {
       limit,
     );
     const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
     return {
       ...result,
-      data: result.data.map((l) => {
-        const fin = new Date(l.fechaFin);
-        fin.setHours(0, 0, 0, 0);
-        return {
-          ...l,
-          estado:
-            fin <= hoy && l.estado !== 'rechazada' ? 'finalizada' : l.estado,
-        };
-      }),
+      data: result.data.map((l) => ({
+        ...l,
+        estado: estadoEfectivo(l.estado, new Date(l.fechaFin), hoy),
+      })),
     };
   }
 
@@ -46,7 +40,7 @@ export class LicenciasService {
     await this.licenciasRepository.updateMany({
       where: {
         fechaFin: { lt: now },
-        estado: { in: ['pendiente', 'aprobada'] },
+        estado: { in: ESTADOS_FINALIZABLES },
       },
       data: { estado: 'finalizada' },
     });
