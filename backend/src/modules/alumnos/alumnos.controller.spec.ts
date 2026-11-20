@@ -48,4 +48,19 @@ describe('AlumnosController', () => {
     await controller.create(dto as never);
     expect(service.create).toHaveBeenCalledWith(dto);
   });
+
+  it('update delega el id y el DTO (validación de DNI duplicado vive en el service)', async () => {
+    const dto = { nombre: 'A2', telefono: '3704001122' } as never;
+    service.update.mockResolvedValue({ id: 3, nombre: 'A2', estado: 'activo' });
+    const result = await controller.update(3, dto);
+    expect(service.update).toHaveBeenCalledWith(3, dto);
+    expect(result).toMatchObject({ id: 3 });
+  });
+
+  it('disable delega el id (baja lógica)', async () => {
+    service.disable.mockResolvedValue({ id: 3, estado: 'inactivo' });
+    const result = await controller.disable(3);
+    expect(service.disable).toHaveBeenCalledWith(3);
+    expect(result).toMatchObject({ estado: 'inactivo' });
+  });
 });
