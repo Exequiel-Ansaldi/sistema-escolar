@@ -21,6 +21,10 @@ async function bootstrap() {
       }),
     );
 
+    // Apagado ordenado (Unidad V clase 3): sin esto, SIGTERM corta
+    // peticiones en curso en vez de drenarlas antes de cerrar.
+    app.enableShutdownHooks();
+
     const port = process.env.PORT || 3000;
     console.log('Starting server on port', port);
     await app.listen(port, '0.0.0.0');

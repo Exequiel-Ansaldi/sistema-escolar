@@ -28,9 +28,11 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sistema_escolar
       JWT_SECRET: ci-test-secret
       JWT_EXPIRES_IN: 8h
+# Actions fijadas por SHA (clase 2, regla de cadena de suministro): la tag
+# (v4) es mutable; el SHA garantiza el código exacto del action.
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: 20
           cache: npm
@@ -41,6 +43,14 @@ jobs:
       - run: npm test
       - run: npm run test:cov
       - run: npm run test:e2e
+      # Artefacto descargable (7 días): el reporte de cobertura queda
+      # disponible desde el resumen del run.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: cobertura-backend
+          path: backend/coverage/lcov-report
+          retention-days: 7
 
   frontend:
     runs-on: ubuntu-latest
@@ -48,8 +58,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: 20
           cache: npm

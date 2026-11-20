@@ -21,6 +21,7 @@ import { ModulosMensualesModule } from './modules/modulos-mensuales/modulos-mens
 import { DiasSinClasesModule } from './modules/dias-sin-clases/dias-sin-clases.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
+import { HealthModule } from './modules/health/health.module';
 import { LoggerMiddleware } from './middleware/logger.middleware';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import appConfig from './config/app.config';
@@ -48,6 +49,7 @@ import appConfig from './config/app.config';
     DiasSinClasesModule,
     DashboardModule,
     ReportesModule,
+    HealthModule,
   ],
   providers: [{ provide: APP_INTERCEPTOR, useClass: AuditInterceptor }],
 })
