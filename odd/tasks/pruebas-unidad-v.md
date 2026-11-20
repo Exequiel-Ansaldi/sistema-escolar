@@ -22,12 +22,12 @@ S6: Acceptance: (a) `npm test` verde con TODOS los casos actuales preservados; (
 
 ## Tasks
 
-- T1 (S2): migrar specs licencias/asistencia/reportes a createTestingModule + overrideProvider (mocks-clase). Route: inline.
-- T2 (S2): specs nuevos de servicios (inscripcion, cursos, alumnos, auth, modulos-mensuales) con test.each donde aplique + controller spec de alumnos. Route: inline.
-- T3 (S3): `test/jest-e2e.json` + helper de bootstrap (globals de main.ts) + specs auth y rbac-alumnos con DB real. Route: inline.
-- T4 (S4): config de cobertura en package.json. Route: inline.
-- T5 (S5): workflow de GitHub Actions (backend con postgres service + frontend). Route: inline.
-- T6 (S6): verificación completa + commits por fase + push. Route: inline.
+- T1 (S2): migrar specs licencias/asistencia/reportes a createTestingModule + overrideProvider (mocks-clase). Route: inline. ✅ hecha (30/30; tabla it.each de transiciones en licencias).
+- T2 (S2): specs nuevos de servicios (inscripcion, cursos, alumnos, auth, modulos-mensuales) con test.each donde aplique + controller spec de alumnos. Route: inline. ✅ hecha (54/54; inscripcion, auth con spy de bcrypt, modulos-mensuales con tabla del invariante — hallazgo: el caso "sin desglose no cierra" estaba mal etiquetado en mi tabla, el código tenía razón —, controller de alumnos resultado+args).
+- T3 (S3): `test/jest-e2e.json` + helper de bootstrap (globals de main.ts) + specs auth y rbac-alumnos con DB real. Route: inline. ✅ hecha (11/11; hallazgo real: contrasena corta → 400 por ValidationPipe ANTES del 401 de auth — contrato documentado).
+- T4 (S4): config de cobertura en package.json. Route: inline. ✅ hecha (34.69% global honesto; excluye módulos/dto/main/prisma/middleware/common/config/strategies/repos).
+- T5 (S5): workflow de GitHub Actions (backend con postgres service + frontend). Route: inline. ✅ hecha (`.github/workflows/tests.yml`: npm ci → migrate deploy → seed → test → test:cov → test:e2e; frontend build).
+- T6 (S6): verificación completa + commits por fase + push. Route: inline. ✅ hecha (commits por fase; push a decisión del usuario — activa la CI en GitHub).
 
 ## Log
 

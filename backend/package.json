@@ -90,6 +90,18 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "coveragePathIgnorePatterns": [
+      "\\.module\\.ts$",
+      "main\\.ts$",
+      "\\.dto\\.ts$",
+      "dto/",
+      "prisma/",
+      "middleware/",
+      "common/",
+      "config/",
+      "strategies/",
+      "\\.repository\\.ts$"
+    ]
   }
 }
