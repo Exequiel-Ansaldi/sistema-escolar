@@ -1,21 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ReportesRepository } from './repositories/reportes.repository';
+import { generarPdf } from './reporte-pdf';
 import { Prisma } from '@prisma/client';
-import PDFDocument from 'pdfkit';
-
-function generarPdf(
-  escribir: (doc: PDFKit.PDFDocument) => void,
-): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50 });
-    const chunks: Buffer[] = [];
-    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
-    escribir(doc);
-    doc.end();
-  });
-}
 
 @Injectable()
 export class ReportesService {
