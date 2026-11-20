@@ -46,11 +46,11 @@ S11: Acceptance C: (a) `migrate deploy` desde cero aplica la migración de rever
 ## Tasks (fase C)
 
 - T5 (S7): verificación: tsc 0 errores; seed OK; deploy scratch OK (todas las migraciones desde cero); smoke login/alumnos GET-POST-PUT-DELETE/docentes/usuarios/dashboard/asistencias OK; build frontend OK sin cambios. Commits: T1..T5 en un solo commit (unidad coherente, supera 400 líneas porque schema+migración+13 repos+seed son un solo comportamiento). ✅ hecha.
-- T6 (S8): schema.prisma — quitar `Usuario`, agregar `Personal` (subtipo 1:1 de personas con nombre_usuario/contraseña/rol_id/activo); `Rol.usuarios`→`Rol.personal`; `Persona.usuarios`→`Persona.personal`. Route: inline.
-- T7 (S8,S11): migración `20261120000000_personal_subtipo`: CREATE personal (copia desde usuarios: persona_id, nombre_usuario, contraseña, rol_id, activo←persona.estado), DROP usuarios; backup previo no requerido (no destruye datos: solo renombra estructura; igualmente se conserva el dump del 19/11). Route: inline.
-- T8 (S9,S10,S11): backend: auth.repository/service/jwt.strategy sobre `personal`; usuarios.repository/service sobre `personal` con shape plano `/api/usuarios`; dashboard.countUsuariosActivos por `activo: true`. Route: inline.
-- T9 (S8,S11): seed: bloque roles+usuarios → crea persona (staff) + personal; limpieza agrega `personal.deleteMany()` y quita `usuario.deleteMany()`. Route: inline.
-- T10 (S11): verificación: tsc 0 errores; grep sin `prisma.usuario` residual; scratch deploy desde cero; seed OK; smoke login 200/401 (pass malo y cuenta inactiva), GET /api/usuarios plano, dashboard counts, build frontend. Commit único de fase C. Route: inline.
+- T6 (S8): schema.prisma — quitar `Usuario`, agregar `Personal` (subtipo 1:1 de personas con nombre_usuario/contraseña/rol_id/activo); `Rol.usuarios`→`Rol.personal`; `Persona.usuarios`→`Persona.personal`. Route: inline. ✅ hecha.
+- T7 (S8,S11): migración `20261120000000_personal_subtipo`: CREATE personal (copia desde usuarios: persona_id, nombre_usuario, contraseña, rol_id, activo←persona.estado), DROP usuarios; backup previo no requerido (no destruye datos: solo renombra estructura; igualmente se conserva el dump del 19/11). Route: inline. ✅ hecha (7 cuentas migradas, todas activas).
+- T8 (S9,S10,S11): backend: auth.repository/service/jwt.strategy sobre `personal`; usuarios.repository/service sobre `personal` con shape plano `/api/usuarios`; dashboard.countUsuariosActivos por `activo: true`. Route: inline. ✅ hecha.
+- T9 (S8,S11): seed: bloque roles+usuarios → crea persona (staff) + personal; limpieza agrega `personal.deleteMany()` y quita `usuario.deleteMany()`. Route: inline. ✅ hecha (987 personas, 7 cuentas).
+- T10 (S11): verificación: tsc 0 errores; grep sin `prisma.usuario` residual; scratch deploy desde cero; seed OK; smoke login 200/401 (pass malo y cuenta inactiva), GET /api/usuarios plano, dashboard counts, build frontend. Commit único de fase C. Route: inline. ✅ hecha — commit `42aa15f`. Nota: el 500 inicial del POST fue dato de prueba (rolId=1 inexistente tras re-seed: las secuencias no se resetean en deleteMany, gotcha ya documentado en AGENTS.md); con rolId real el ciclo crear→loguear→desactivar→401 pasó completo.
 
 ## Log
 
