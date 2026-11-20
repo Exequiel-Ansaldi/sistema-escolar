@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ReportesRepository } from './repositories/reportes.repository';
 import { generarPdf } from './reporte-pdf';
 import { Prisma } from '@prisma/client';
