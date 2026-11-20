@@ -22,7 +22,7 @@ export const ROL_LABELS: Record<string, string> = {
 
 export const RUTAS_POR_ROL: Record<string, Rol[]> = {
   '/': [ROLES.VICERRECTOR],
-  '/alumnos': [ROLES.SECRETARIA_ALUMNADO],
+  '/alumnos': [ROLES.SECRETARIA_ALUMNADO, ROLES.ASESORIA_PEDAGOGICA],
   '/inscripciones': [ROLES.SECRETARIA_ALUMNADO],
   '/docentes': [ROLES.SECRETARIA_PERSONAL],
   '/licencias': [ROLES.SECRETARIA_PERSONAL],
@@ -35,6 +35,30 @@ export const RUTAS_POR_ROL: Record<string, Rol[]> = {
   '/modulos-mensuales': [ROLES.PRECEPTOR_MANANA],
   '/calendario': [ROLES.PRECEPTOR_MANANA],
 };
+
+// Roles con permiso de ESCRITURA por módulo (espeja los @Roles de POST/PUT/DELETE
+// del backend; la defensa real siguen siendo los guards). Solo-lectura = sin botones.
+const ESCRITURA_POR_PATH: Record<string, Rol[]> = {
+  '/alumnos': [ROLES.SECRETARIA_ALUMNADO],
+  '/inscripciones': [ROLES.SECRETARIA_ALUMNADO],
+  '/docentes': [ROLES.SECRETARIA_PERSONAL],
+  '/licencias': [ROLES.SECRETARIA_PERSONAL],
+  '/cursos': [ROLES.VICERRECTOR, ROLES.PRECEPTOR_MANANA],
+  '/carga-horaria': [ROLES.VICERRECTOR],
+  '/materias': [ROLES.VICERRECTOR],
+  '/asistencias': [ROLES.PRECEPTOR_MANANA],
+  '/calificaciones': [ROLES.PRECEPTOR_MANANA],
+  '/modulos-mensuales': [ROLES.PRECEPTOR_MANANA],
+  '/calendario': [ROLES.PRECEPTOR_MANANA],
+  '/actas': [ROLES.ASESORIA_PEDAGOGICA],
+};
+
+export function puedeEscribir(rol: string | undefined, path: string): boolean {
+  if (!rol) return false;
+  if (rol === ROLES.ADMIN || rol === ROLES.RECTOR) return true;
+  const permitidos = ESCRITURA_POR_PATH[path];
+  return permitidos?.includes(rol as Rol) ?? false;
+}
 
 export function puedeAcceder(rol: string | undefined, path: string): boolean {
   if (!rol) return false;

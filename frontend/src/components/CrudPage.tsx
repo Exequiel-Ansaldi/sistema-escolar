@@ -1,11 +1,14 @@
 import { useMemo, useEffect, useRef, type ReactNode } from 'react';
 import { DataTable, FormModal, Input, Button, ConfirmModal, Pagination, Toast } from '../components/ui';
 import { useCrud } from '../hooks/useCrud';
-import { Plus } from 'lucide-react';
+import { Plus, Eye } from 'lucide-react';
 import type { PaginatedResult } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { puedeEscribir } from '../constants/roles';
 
 interface CrudPageProps {
   title: string;
+  writePath: string;
   columns: { key: string; label: string; render?: (value: any, row: any) => any }[];
   fields: { key: string; label: string; type?: string; required?: boolean; options?: { value: string | number; label: string }[]; min?: number; max?: string }[];
   fetchFn: (page: number, limit: number, filters?: Record<string, string>) => Promise<PaginatedResult<any>>;
@@ -17,7 +20,9 @@ interface CrudPageProps {
   onCreated?: (row: any) => void;
 }
 
-export function CrudPage({ title, columns, fields, fetchFn, createFn, updateFn, deleteFn, renderFilters, filterParams = {}, onCreated }: CrudPageProps) {
+export function CrudPage({ title, writePath, columns, fields, fetchFn, createFn, updateFn, deleteFn, renderFilters, filterParams = {}, onCreated }: CrudPageProps) {
+  const { user } = useAuth();
+  const puede = puedeEscribir(user?.rol, writePath);
   const { data, loading, editing, showForm, pendingDelete, deleting, openCreate, openEdit, closeForm, save, confirmRemove, cancelDelete, executeDelete, error, page, totalPages, changePage, setFilters, deleteMessage, clearDeleteMessage } = useCrud(fetchFn, createFn, updateFn, deleteFn, filterParams);
 
   const prevParams = useRef(filterParams);
@@ -36,11 +41,12 @@ export function CrudPage({ title, columns, fields, fetchFn, createFn, updateFn, 
         <div>
           <h1 className="text-2xl font-bold text-slate-800">{title}</h1>
           <p className="text-slate-500 text-sm mt-1">Gestión de {title.toLowerCase()}</p>
+          {!puede && <p className="text-amber-600 text-xs mt-1 flex items-center gap-1"><Eye size={12} /> Vista de solo lectura</p>}
         </div>
-        <Button onClick={openCreate} variant="primary"><Plus size={16} /> Nuevo</Button>
+        {puede && <Button onClick={openCreate} variant="primary"><Plus size={16} /> Nuevo</Button>}
       </div>
       {filters && <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5"><div className="flex flex-wrap items-center gap-3">{filters}</div></div>}
-      <DataTable columns={columns} data={data} loading={loading} onEdit={openEdit} onDelete={confirmRemove} />
+      <DataTable columns={columns} data={data} loading={loading} onEdit={puede ? openEdit : undefined} onDelete={puede ? confirmRemove : undefined} />
       <Pagination page={page} totalPages={totalPages} onPageChange={changePage} />
       {showForm && (
         <FormModal title={editing?.id ? `Editar ${title}` : `Nuevo ${title}`} onClose={closeForm}>

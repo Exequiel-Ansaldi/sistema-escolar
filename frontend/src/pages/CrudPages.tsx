@@ -8,7 +8,7 @@ export function AlumnosPage() {
   const [search, setSearch] = useState('');
   const [created, setCreated] = useState<any | null>(null);
   return <>
-    <CrudPage title="Alumnos" columns={[
+    <CrudPage title="Alumnos" writePath="/alumnos" columns={[
     { key: 'dni', label: 'DNI' }, { key: 'apellido', label: 'Apellido' }, { key: 'nombre', label: 'Nombre' },
     { key: 'telefono', label: 'Teléfono' },
   ]} fields={[
@@ -47,7 +47,7 @@ export function CursosPage() {
   if (anioFilter) filterParams.anio = anioFilter;
   if (divisionFilter) filterParams.division = divisionFilter;
   if (turnoFilter) filterParams.turno = turnoFilter;
-  return <CrudPage title="Cursos" columns={[
+  return <CrudPage title="Cursos" writePath="/cursos" columns={[
     { key: 'anio', label: 'Año' }, { key: 'division', label: 'División' },
     { key: 'turno', label: 'Turno' }, { key: 'orientacion', label: 'Orientación' }, { key: 'cicloLectivo', label: 'Ciclo' },
   ]} fields={[
@@ -73,7 +73,7 @@ export function CursosPage() {
 export function DocentesPage() {
   const [search, setSearch] = useState('');
   const today = new Date().toISOString().split('T')[0];
-  return <CrudPage title="Docentes" columns={[
+  return <CrudPage title="Docentes" writePath="/docentes" columns={[
     { key: 'dni', label: 'DNI' }, { key: 'apellido', label: 'Apellido' }, { key: 'nombre', label: 'Nombre' },
     { key: 'email', label: 'Email' }, { key: 'telefono', label: 'Teléfono' },
   ]} fields={[
@@ -92,7 +92,7 @@ export function DocentesPage() {
 
 export function MateriasPage() {
   const [search, setSearch] = useState('');
-  return <CrudPage title="Materias" columns={[
+  return <CrudPage title="Materias" writePath="/materias" columns={[
     { key: 'id', label: 'ID' }, { key: 'nombre', label: 'Nombre' },
   ]} fields={[
     { key: 'nombre', label: 'Nombre', required: true },

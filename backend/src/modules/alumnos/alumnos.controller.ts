@@ -26,6 +26,7 @@ export class AlumnosController {
   constructor(private alumnosService: AlumnosService) {}
 
   @Get()
+  @Roles(ROLES.RECTOR, ROLES.SECRETARIA_ALUMNADO, ROLES.ASESORIA_PEDAGOGICA)
   findAll(@Query() query: FiltrarAlumnosDto) {
     return this.alumnosService.findAll(
       query.page ?? 1,
@@ -35,6 +36,7 @@ export class AlumnosController {
   }
 
   @Get(':id')
+  @Roles(ROLES.RECTOR, ROLES.SECRETARIA_ALUMNADO, ROLES.ASESORIA_PEDAGOGICA)
   findById(@Param('id', ParseIntPipe) id: number) {
     return this.alumnosService.findById(id);
   }
