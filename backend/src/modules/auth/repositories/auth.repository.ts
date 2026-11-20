@@ -6,7 +6,7 @@ export class AuthRepository {
   constructor(private prisma: PrismaService) {}
 
   async findByNombreUsuario(nombreUsuario: string) {
-    return this.prisma.usuario.findUnique({
+    return this.prisma.personal.findUnique({
       where: { nombreUsuario },
       include: { rol: true, persona: true },
     });

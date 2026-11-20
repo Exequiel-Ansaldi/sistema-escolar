@@ -15,7 +15,7 @@ export class DashboardRepository {
     return this.prisma.curso.count({ where: { estado: 'activo' } });
   }
   countUsuariosActivos() {
-    return this.prisma.usuario.count({ where: { persona: { estado: 'activo' } } });
+    return this.prisma.personal.count({ where: { activo: true } });
   }
 
   findAsistenciasByFecha(start: Date, end: Date) {

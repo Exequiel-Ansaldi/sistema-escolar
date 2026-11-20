@@ -15,19 +15,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: { id: number; rol: string }): Promise<JwtUsuario> {
-    const usuario = await this.prisma.usuario.findUnique({
+    const cuenta = await this.prisma.personal.findUnique({
       where: { id: payload.id },
-      include: { rol: true, persona: true },
+      include: { rol: true },
     });
 
-    if (!usuario || usuario.persona.estado !== 'activo') {
+    if (!cuenta || !cuenta.activo) {
       throw new UnauthorizedException('Usuario no autorizado');
     }
 
     return {
-      id: usuario.id,
-      rol: usuario.rol.nombreRol,
-      nombreUsuario: usuario.nombreUsuario,
+      id: cuenta.id,
+      rol: cuenta.rol.nombreRol,
+      nombreUsuario: cuenta.nombreUsuario,
     };
   }
 }

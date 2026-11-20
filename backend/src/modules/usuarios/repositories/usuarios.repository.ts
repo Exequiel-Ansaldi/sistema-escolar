@@ -5,28 +5,31 @@ import { ActualizarUsuarioDto } from '../dto/actualizar-usuario.dto';
 import type { UsuarioResponse } from '../dto/usuario-response';
 import type { PaginatedResult } from '../../../common/interfaces/paginated-result.interface';
 
-type UsuarioConPersona = {
+// Las cuentas viven en `personal` (subtipo de personas); nombre/apellido son el
+// display de la persona asociada. activo es estado de la CUENTA.
+type CuentaConPersona = {
   id: number;
   nombreUsuario: string;
   rolId: number;
-  persona: { nombre: string; apellido: string; estado: string };
+  activo: boolean;
+  persona: { nombre: string; apellido: string };
   rol?: { id: number; nombreRol: string };
 };
 
-function serializarUsuario(u: UsuarioConPersona): UsuarioResponse {
+function serializarCuenta(c: CuentaConPersona): UsuarioResponse {
   return {
-    id: u.id,
-    nombreUsuario: u.nombreUsuario,
-    nombre: u.persona.nombre,
-    apellido: u.persona.apellido,
-    activo: u.persona.estado === 'activo',
-    rolId: u.rolId,
-    ...(u.rol ? { rol: u.rol } : {}),
+    id: c.id,
+    nombreUsuario: c.nombreUsuario,
+    nombre: c.persona.nombre,
+    apellido: c.persona.apellido,
+    activo: c.activo,
+    rolId: c.rolId,
+    ...(c.rol ? { rol: c.rol } : {}),
   };
 }
 
-const USUARIO_INCLUDE = {
-  persona: { select: { nombre: true, apellido: true, estado: true } },
+const CUENTA_INCLUDE = {
+  persona: { select: { nombre: true, apellido: true } },
   rol: { select: { id: true, nombreRol: true } },
 };
 
@@ -40,67 +43,73 @@ export class UsuariosRepository {
   ): Promise<PaginatedResult<UsuarioResponse>> {
     const skip = (page - 1) * limit;
     const [rows, total] = await Promise.all([
-      this.prisma.usuario.findMany({
+      this.prisma.personal.findMany({
         skip,
         take: limit,
-        include: USUARIO_INCLUDE,
+        include: CUENTA_INCLUDE,
       }),
-      this.prisma.usuario.count(),
+      this.prisma.personal.count(),
     ]);
-    const data = rows.map(serializarUsuario);
+    const data = rows.map(serializarCuenta);
     return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async findById(id: number): Promise<UsuarioResponse | null> {
-    const usuario = await this.prisma.usuario.findUnique({
+    const cuenta = await this.prisma.personal.findUnique({
       where: { id },
-      include: USUARIO_INCLUDE,
+      include: CUENTA_INCLUDE,
     });
-    return usuario ? serializarUsuario(usuario) : null;
+    return cuenta ? serializarCuenta(cuenta) : null;
   }
 
   findByNombreUsuario(nombreUsuario: string) {
-    return this.prisma.usuario.findUnique({ where: { nombreUsuario } });
+    return this.prisma.personal.findUnique({ where: { nombreUsuario } });
   }
 
-  async create(data: CrearUsuarioDto & { contrasena: string }): Promise<UsuarioResponse> {
-    const { nombre, apellido, ...usuarioData } = data;
-    const creado = await this.prisma.$transaction(async (tx) => {
+  create(data: CrearUsuarioDto & { contrasena: string }): Promise<UsuarioResponse> {
+    const { nombre, apellido, nombreUsuario, rolId, contrasena } = data;
+    return this.prisma.$transaction(async (tx) => {
       const persona = await tx.persona.create({
         data: { nombre, apellido },
       });
-      return tx.usuario.create({
-        data: { ...usuarioData, personaId: persona.id },
-        include: USUARIO_INCLUDE,
+      const cuenta = await tx.personal.create({
+        data: { personaId: persona.id, nombreUsuario, contrasena, rolId },
+        include: CUENTA_INCLUDE,
       });
+      return serializarCuenta(cuenta);
     });
-    return serializarUsuario(creado);
   }
 
-  async update(id: number, data: ActualizarUsuarioDto & { contrasena?: string }): Promise<UsuarioResponse> {
-    const { nombre, apellido, contrasena, ...usuarioData } = data;
-    const updateData: Record<string, unknown> = { ...usuarioData };
+  async update(
+    id: number,
+    data: ActualizarUsuarioDto & { contrasena?: string },
+  ): Promise<UsuarioResponse> {
+    const { nombre, apellido, nombreUsuario, contrasena, rolId } = data;
+    const updateData: Record<string, unknown> = {};
+    if (nombreUsuario !== undefined)
+      updateData.nombreUsuario = nombreUsuario;
     if (contrasena !== undefined) updateData.contrasena = contrasena;
+    if (rolId !== undefined) updateData.rolId = rolId;
     const personaPayload: Record<string, string> = {};
     if (nombre !== undefined) personaPayload.nombre = nombre;
     if (apellido !== undefined) personaPayload.apellido = apellido;
     if (Object.keys(personaPayload).length > 0) {
       updateData.persona = { update: personaPayload };
     }
-    const actualizado = await this.prisma.usuario.update({
+    const actualizado = await this.prisma.personal.update({
       where: { id },
       data: updateData,
-      include: USUARIO_INCLUDE,
+      include: CUENTA_INCLUDE,
     });
-    return serializarUsuario(actualizado);
+    return serializarCuenta(actualizado);
   }
 
   async disable(id: number): Promise<UsuarioResponse> {
-    const actualizado = await this.prisma.usuario.update({
+    const actualizado = await this.prisma.personal.update({
       where: { id },
-      data: { persona: { update: { estado: 'inactivo' } } },
-      include: USUARIO_INCLUDE,
+      data: { activo: false },
+      include: CUENTA_INCLUDE,
     });
-    return serializarUsuario(actualizado);
+    return serializarCuenta(actualizado);
   }
 }

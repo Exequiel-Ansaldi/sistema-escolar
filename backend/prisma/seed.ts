@@ -106,7 +106,7 @@ async function main() {
   await prisma.curso.deleteMany();
   await prisma.docente.deleteMany();
   await prisma.materia.deleteMany();
-  await prisma.usuario.deleteMany();
+  await prisma.personal.deleteMany();
   await prisma.rol.deleteMany();
   await prisma.persona.deleteMany();
 
@@ -125,15 +125,17 @@ async function main() {
     const rol = await prisma.rol.create({ data: { nombreRol: r.nombreRol } });
     credenciales.push(`${r.nombreUsuario}/${r.contrasena}`);
     const hash = await bcrypt.hash(r.contrasena, 10);
+    // el staff es persona real del colegio; la cuenta es el subtipo personal
     const persona = await prisma.persona.create({
       data: { nombre: r.nombre, apellido: r.apellido },
     });
-    await prisma.usuario.create({
+    await prisma.personal.create({
       data: {
+        personaId: persona.id,
         nombreUsuario: r.nombreUsuario,
         contrasena: hash,
         rolId: rol.id,
-        personaId: persona.id,
+        activo: true,
       },
     });
   }

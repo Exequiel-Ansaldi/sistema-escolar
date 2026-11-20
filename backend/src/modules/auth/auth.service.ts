@@ -13,32 +13,32 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto): Promise<LoginResponse> {
-    const usuario = await this.authRepository.findByNombreUsuario(
+    const cuenta = await this.authRepository.findByNombreUsuario(
       dto.nombreUsuario,
     );
 
-    if (!usuario || usuario.persona.estado !== 'activo') {
+    if (!cuenta || !cuenta.activo) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     const passwordValida = await bcrypt.compare(
       dto.contrasena,
-      usuario.contrasena,
+      cuenta.contrasena,
     );
     if (!passwordValida) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    const payload = { id: usuario.id, rol: usuario.rol.nombreRol };
+    const payload = { id: cuenta.id, rol: cuenta.rol.nombreRol };
 
     return {
       accessToken: this.jwtService.sign(payload),
       usuario: {
-        id: usuario.id,
-        nombreUsuario: usuario.nombreUsuario,
-        nombre: usuario.persona.nombre,
-        apellido: usuario.persona.apellido,
-        rol: usuario.rol.nombreRol,
+        id: cuenta.id,
+        nombreUsuario: cuenta.nombreUsuario,
+        nombre: cuenta.persona.nombre,
+        apellido: cuenta.persona.apellido,
+        rol: cuenta.rol.nombreRol,
       },
     };
   }

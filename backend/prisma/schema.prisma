@@ -10,7 +10,7 @@ datasource db {
 model Rol {
   id        Int       @id @default(autoincrement())
   nombreRol String    @map("nombre_rol")
-  usuarios  Usuario[]
+  personal  Personal[]
 }
 
 model Persona {
@@ -26,12 +26,12 @@ model Persona {
   alumnos  Alumno[]
   docentes Docente[]
   tutores  Tutor[]
-  usuarios Usuario[]
+  personal Personal[]
 
   @@map("personas")
 }
 
-model Usuario {
+model Personal {
   id            Int      @id @default(autoincrement())
   personaId     Int      @unique @map("persona_id")
   persona       Persona  @relation(fields: [personaId], references: [id])
@@ -39,10 +39,11 @@ model Usuario {
   contrasena    String   @map("contraseña")
   rolId         Int      @map("rol_id")
   rol           Rol      @relation(fields: [rolId], references: [id])
+  activo        Boolean  @default(true)
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  @@map("usuarios")
+  @@map("personal")
 }
 
 model Alumno {
