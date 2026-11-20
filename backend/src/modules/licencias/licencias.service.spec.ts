@@ -176,4 +176,38 @@ describe('LicenciasService (caracterización)', () => {
     expect(args.where.estado.in).toEqual(['pendiente', 'aprobada']);
     expect(args.data.estado).toBe('finalizada');
   });
+
+  describe('transiciones de estado (comportamiento nuevo — paso B)', () => {
+    it('update permite transición válida pendiente → aprobada', async () => {
+      const { repo, registradas } = dobleLicencias([lic({ id: 1, estado: 'pendiente' })]);
+      const service = new LicenciasService(repo);
+      await service.update(1, { estado: 'aprobada' } as ActualizarLicenciaDto);
+      expect(registradas).toHaveLength(1);
+    });
+
+    it('update rechaza transición inválida aprobada → pendiente (400)', async () => {
+      const { repo, registradas } = dobleLicencias([lic({ id: 1, estado: 'aprobada' })]);
+      const service = new LicenciasService(repo);
+      await expect(
+        service.update(1, { estado: 'pendiente' } as ActualizarLicenciaDto),
+      ).rejects.toThrow(BadRequestException);
+      expect(registradas).toHaveLength(0);
+    });
+
+    it('update rechaza estado desconocido (400)', async () => {
+      const { repo } = dobleLicencias([lic({ id: 1, estado: 'pendiente' })]);
+      const service = new LicenciasService(repo);
+      await expect(
+        service.update(1, { estado: 'cancelada' } as ActualizarLicenciaDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('update rechaza transición desde rechazada (estado terminal, 400)', async () => {
+      const { repo } = dobleLicencias([lic({ id: 1, estado: 'rechazada' })]);
+      const service = new LicenciasService(repo);
+      await expect(
+        service.update(1, { estado: 'aprobada' } as ActualizarLicenciaDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
 });

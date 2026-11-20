@@ -8,6 +8,8 @@ import type { PaginatedResult } from '../../common/interfaces/paginated-result.i
 import {
   ESTADOS_FINALIZABLES,
   estadoEfectivo,
+  esEstadoValido,
+  puedeTransitar,
 } from './licencias-estado';
 
 @Injectable()
@@ -61,9 +63,10 @@ export class LicenciasService {
   }
 
   async update(id: number, dto: ActualizarLicenciaDto) {
+    const actual = await this.licenciasRepository.findById(id);
+    if (!actual) throw new NotFoundException('Licencia no encontrada');
+
     if (dto.fechaFin || dto.fechaInicio) {
-      const actual = await this.licenciasRepository.findById(id);
-      if (!actual) throw new NotFoundException('Licencia no encontrada');
       const inicio = dto.fechaInicio
         ? new Date(dto.fechaInicio)
         : actual.fechaInicio;
@@ -73,6 +76,21 @@ export class LicenciasService {
           'La fecha de fin no puede ser anterior a la fecha de inicio',
         );
     }
+
+    if (dto.estado !== undefined) {
+      if (!esEstadoValido(dto.estado)) {
+        throw new BadRequestException(`Estado desconocido: ${dto.estado}`);
+      }
+      const estadoActual = esEstadoValido(actual.estado)
+        ? actual.estado
+        : null;
+      if (!estadoActual || !puedeTransitar(estadoActual, dto.estado)) {
+        throw new BadRequestException(
+          `Transición inválida: ${actual.estado} → ${dto.estado}`,
+        );
+      }
+    }
+
     return this.licenciasRepository.update(id, dto);
   }
 
