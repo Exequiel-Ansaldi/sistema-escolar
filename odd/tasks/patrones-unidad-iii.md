@@ -23,11 +23,11 @@ S7: Acceptance: (a) `npm test` verde en cada commit; (b) `tsc --noEmit` 0 errore
 
 ## Tasks
 
-- T1 (S3): tests de caracterización licencias + asistencia (rareza documentada). Route: inline.
-- T2 (S4): Template Method reportes (Extract Method → clase base → hooks → borrar duplicación), commit por paso. Route: inline.
-- T3 (S5): State licencias, paso A (refactor puro) y paso B (guards de transición, commit separado). Route: inline.
-- T4 (S6): ADR en el vault + enlace desde Reglas de Negocio / Indice. Route: inline.
-- T5 (S7): verificación completa (jest, tsc, smoke, commits nombrados) + cierre. Route: inline.
+- T1 (S3): tests de caracterización licencias + asistencia (rareza documentada). Route: inline. ✅ hecha (15 tests, commit `test: caracterizacion...`).
+- T2 (S4): Template Method reportes (Extract Method → clase base → hooks → borrar duplicación), commit por paso. Route: inline. ✅ hecha (4 commits: Extract Class módulo, Move ×3; incluído fix de import en rojo corregido en commit siguiente).
+- T3 (S5): State licencias, paso A (refactor puro) y paso B (guards de transición, commit separado). Route: inline. ✅ hecha (26 tests; hallazgo en smoke: transición a sí mismo rompería el form → no-op permitido con test).
+- T4 (S6): ADR en el vault + enlace desde Reglas de Negocio / Indice. Route: inline. ✅ hecha (`ADR - Patrones aplicados (Unidad III).md`).
+- T5 (S7): verificación completa: jest 26/26 en cada commit; tsc 0 errores; smoke live: PDF calificaciones 200 `application/pdf` 2.3 KB, PUT transición inválida 400 con mensaje, lectura computa `finalizada`; frontend sin cambios. ✅ hecha.
 
 ## Log
 
