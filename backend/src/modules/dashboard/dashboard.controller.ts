@@ -7,7 +7,9 @@ import { ROLES } from '../../common/constants/roles';
 
 @Controller('dashboard')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(ROLES.RECTOR, ROLES.VICERRECTOR)
+// Regla 2026-11-20: el dashboard es visible SOLO para rector (admin siempre
+// pasa por el guard). Antes también entraba vicerrector.
+@Roles(ROLES.RECTOR)
 export class DashboardController {
   constructor(private dashboardService: DashboardService) {}
 
