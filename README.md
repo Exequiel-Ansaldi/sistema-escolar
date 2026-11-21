@@ -35,6 +35,7 @@ Gestioná alumnos, docentes, cursos, asistencias, calificaciones y reportes en u
 - **Control de acceso (RBAC)** — 7 roles con permisos diferenciados protegidos en el backend.
 - **Paginación servidor-cliente** en todas las páginas.
 - **Reportes en PDF** descargables para los roles habilitados.
+- **Calidad verificada** — 181 tests (unitarios + integración de API con PostgreSQL real + flujos e2e) corriendo en CI en cada push/PR.
 
 ## 🧱 Estructura del proyecto
 
@@ -42,6 +43,7 @@ Gestioná alumnos, docentes, cursos, asistencias, calificaciones y reportes en u
 PROYECTO_LUCI/
 ├── backend/          # API REST (NestJS + Prisma)
 ├── frontend/         # SPA (React + Vite)
+├── .github/workflows/  # CI de tests (GitHub Actions)
 ├── start.js          # Levanta backend + frontend juntos en desarrollo
 ├── .env.example      # Variables de entorno de referencia
 ├── render.yaml       # Config de deploy del backend (Render)
@@ -53,7 +55,7 @@ PROYECTO_LUCI/
 
 ### Módulos del backend
 
-`actas` · `acuerdos` · `alumnos` · `asistencia` · `auth` · `calificaciones` · `cursos` · `dashboard` · `dias-sin-clases` · `docentes` · `inscripcion` · `licencias` · `materias` · `modulos-mensuales` · `reportes` · `seguimientos` · `tutores` · `usuarios`
+`actas` · `acuerdos` · `alumnos` · `asistencia` · `auth` · `calificaciones` · `cursos` · `dashboard` · `dias-sin-clases` · `docentes` · `health` · `inscripcion` · `licencias` · `materias` · `modulos-mensuales` · `reportes` · `seguimientos` · `tutores` · `usuarios`
 
 ### Páginas del frontend
 
@@ -158,6 +160,8 @@ npm --prefix frontend run dev
 | `npm run lint` | ESLint |
 | `npm run seed` | Borra y resiembra la BD con datos deterministas |
 | `npm run test` | Tests unitarios (Jest) |
+| `npm run test:e2e` | Integración de API con Supertest — **requiere PostgreSQL local arriba y la base seedeada** (`migrate dev` + `npm run seed`) |
+| `npm run test:cov` | Cobertura (reporte HTML en `coverage/lcov-report/index.html`) |
 | `npx prisma studio` | Navegador visual de la base de datos |
 
 ### Frontend
@@ -192,10 +196,21 @@ Todas las rutas llevan el prefijo `/api`. Ejemplos:
 | Endpoint | Descripción |
 |----------|-------------|
 | `POST /api/auth/login` | Login público, devuelve JWT |
+| `GET /api/health/live` | Liveness (público, no toca la base) |
+| `GET /api/health/ready` | Readiness (público; 503 si la base no responde) |
 | `GET /api/alumnos` | Lista paginada de alumnos |
 | `GET /api/dashboard/aprobados-por-curso` | Aprobados por curso (agrupado por año y turno) |
 | `GET /api/dashboard/promedio-por-anio` | Promedio general por año |
 | `GET /api/reportes/...` | Reportes (PDF) |
+
+## 🔄 Integración continua
+
+`.github/workflows/tests.yml` corre en cada push y pull request:
+
+- **Backend**: Postgres 18 como service container → `npm ci` → `prisma migrate deploy` → seed → unitarios → cobertura → integración/e2e.
+- **Frontend**: `npm ci` + build.
+- El reporte de cobertura queda descargable como **artefacto** del run (7 días).
+- Las actions se referencian **por SHA** (no por tag mutable).
 
 ## 📄 Licencia
 
