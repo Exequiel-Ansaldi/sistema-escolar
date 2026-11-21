@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { GraduationCap, Eye, EyeOff } from 'lucide-react';
@@ -11,6 +11,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const idUsuario = useId();
+  const idContrasena = useId();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,22 +35,28 @@ export default function Login() {
             <p className="text-gray-500 mt-1 text-sm">Inicia sesión para continuar</p>
           </div>
 
-          {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm flex items-center gap-2">{error}</div>}
+          {error && (
+            <div role="alert" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm flex items-center gap-2">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Usuario</label>
-              <input value={nombreUsuario} onChange={e => setNombreUsuario(e.target.value)}
+              <label htmlFor={idUsuario} className="block text-sm font-medium text-gray-700 mb-1.5">Usuario</label>
+              <input id={idUsuario} value={nombreUsuario} onChange={e => setNombreUsuario(e.target.value)}
+                autoComplete="username"
                 className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                 placeholder="Ingrese su usuario" required />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Contraseña</label>
+              <label htmlFor={idContrasena} className="block text-sm font-medium text-gray-700 mb-1.5">Contraseña</label>
               <div className="relative">
-                <input type={showPw ? 'text' : 'password'} value={contrasena} onChange={e => setContrasena(e.target.value)}
+                <input id={idContrasena} type={showPw ? 'text' : 'password'} value={contrasena} onChange={e => setContrasena(e.target.value)}
+                  autoComplete="current-password"
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow pr-10"
                   placeholder="Ingrese su contraseña" required />
-                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <button type="button" onClick={() => setShowPw(!showPw)} aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={showPw} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                   {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>

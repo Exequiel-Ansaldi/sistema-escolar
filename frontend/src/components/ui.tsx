@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useId, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { X, CheckCircle, AlertCircle, Pencil, Trash2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -20,8 +20,8 @@ export function DataTable({ columns, data, onEdit, onDelete, loading }: { column
           {data.map((row, i) => <tr key={row.id ?? i} className={`border-b border-gray-100 transition-colors hover:bg-blue-50/40 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}>
             {columns.map(c => <td key={c.key} className="px-5 py-3 text-gray-700">{c.render ? c.render(row[c.key], row) : row[c.key]}</td>)}
             {(onEdit || onDelete) && <td className="px-5 py-3"><div className="flex items-center justify-end gap-1">
-              {onEdit && <button onClick={() => onEdit(row)} className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Editar"><Pencil size={16} /></button>}
-              {onDelete && <button onClick={() => onDelete(row)} className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all" title="Eliminar"><Trash2 size={16} /></button>}
+              {onEdit && <button onClick={() => onEdit(row)} aria-label="Editar" className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-all" title="Editar"><Pencil size={16} /></button>}
+              {onDelete && <button onClick={() => onDelete(row)} aria-label="Eliminar" className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all" title="Eliminar"><Trash2 size={16} /></button>}
             </div></td>}
           </tr>)}
         </tbody>
@@ -67,20 +67,35 @@ export function ConfirmModal({ title, message, onConfirm, onCancel, loading }: {
   );
 }
 
-export function Input({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+// Contrato (cátedra Unidad IV): label asociada con htmlFor/useId y
+// onChange entrega el VALOR (string), no el evento del DOM.
+// Controlado o no controlado: el consumidor decide (value/defaultValue pasan por props).
+export function Input({ label, onChange, ...props }: Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> & { label: string; onChange?: (valor: string) => void }) {
+  const id = useId();
   return (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
-      <input {...props} className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow" />
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
+      <input
+        id={id}
+        {...props}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow"
+      />
     </div>
   );
 }
 
-export function Select({ label, children, ...props }: { label: string } & React.SelectHTMLAttributes<HTMLSelectElement>) {
+export function Select({ label, children, onChange, ...props }: Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'onChange'> & { label: string; onChange?: (valor: string) => void }) {
+  const id = useId();
   return (
     <div className="mb-4">
-      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
-      <select {...props} className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow bg-white">
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
+      <select
+        id={id}
+        {...props}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        className="w-full border border-gray-300 rounded-lg px-3.5 py-2.5 text-sm text-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow bg-white"
+      >
         {children}
       </select>
     </div>
