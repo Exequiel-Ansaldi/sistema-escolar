@@ -8,15 +8,12 @@ import { ROLES, puedeAcceder, puedeEscribir, rutaInicial } from './roles';
  * 1) rutaInicial('preceptor_manana') devuelve '/cursos', no '/asistencias'
  *    como decía el spec S3: el loop usa el orden de inserción de
  *    RUTAS_POR_ROL y '/cursos' ([vicerrector, preceptor_manana]) aparece
- *    antes que '/asistencias'.
- * 2) Rutas SIN entrada en RUTAS_POR_ROL (p. ej. '/dashboard') son accesibles
- *    para CUALQUIER rol autenticado (puedeAcceder => true), aunque el backend
- *    restringe el dashboard a rector + vicerrector. La lista del front quedó
- *    corta respecto de los guards.
- * 3) '/' es accesible para vicerrector pero NO tiene entrada en
- *    ESCRITURA_POR_PATH => puedeEscribir(vicerrector, '/') === false.
- *    Coherente en la práctica (el dashboard es solo lectura), pero la regla
- *    "accesible => escribible" no se sostiene para ese path.
+ * 2) Default-deny (2026-11-20): rutas SIN entrada en RUTAS_POR_ROL quedan
+ *    BLOQUEADAS para cualquier rol sin permiso explícito — alineado con los
+ *    guards del backend.
+ * 3) '/' (Dashboard) es SOLO para rector (admin/rector pasan por el check
+ *    especial; vicerrector ya no). El dashboard es solo lectura en ambos
+ *    entornos, así que tampoco tiene entrada en ESCRITURA_POR_PATH.
  */
 
 describe('puedeAcceder', () => {
@@ -38,10 +35,15 @@ describe('puedeAcceder', () => {
   });
 
   it.each([
-    [ROLES.VICERRECTOR, '/dashboard'],
-    [ROLES.PRECEPTOR_MANANA, '/dashboard'],
-  ])('permite %s en %s porque la ruta no tiene entrada en el mapa (inconsistencia 2)', (rol, ruta) => {
-    expect(puedeAcceder(rol, ruta)).toBe(true);
+    [ROLES.VICERRECTOR, '/docentes'],
+    [ROLES.PRECEPTOR_MANANA, '/materias'],
+  ])('default-deny: rechaza %s en %s (ruta sin entrada para ese rol)', (rol, ruta) => {
+    expect(puedeAcceder(rol, ruta)).toBe(false);
+  });
+
+  it('dashboard solo rector: vicerrector ya NO accede a / (regla 2026-11-20)', () => {
+    expect(puedeAcceder(ROLES.VICERRECTOR, '/')).toBe(false);
+    expect(puedeAcceder(ROLES.RECTOR, '/')).toBe(true);
   });
 
   it('rechaza cuando no hay rol', () => {
@@ -76,8 +78,12 @@ describe('puedeEscribir', () => {
 });
 
 describe('rutaInicial', () => {
-  it('vicerrector aterriza en / (tiene acceso al dashboard)', () => {
-    expect(rutaInicial(ROLES.VICERRECTOR)).toBe('/');
+  it('rector aterriza en / (dashboard, regla 2026-11-20)', () => {
+    expect(rutaInicial(ROLES.RECTOR)).toBe('/');
+  });
+
+  it('vicerrector ya no tiene dashboard: aterriza en su primera ruta del menú (/cursos)', () => {
+    expect(rutaInicial(ROLES.VICERRECTOR)).toBe('/cursos');
   });
 
   it('preceptor_manana aterriza en la primera ruta permitida: /cursos (inconsistencia 1)', () => {

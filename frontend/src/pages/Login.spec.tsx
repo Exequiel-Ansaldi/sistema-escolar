@@ -48,11 +48,11 @@ describe('Login (contenedor con api mockeada)', () => {
   // labels del Login no llevan htmlFor y los inputs no tienen id, así que
   // getByLabelText no los encuentra. Se documenta el comportamiento real;
   // arreglarlo tocaría Login.tsx (fuera del alcance de este batch de specs).
-  it('documenta que los labels NO están asociados a los inputs', () => {
+  it('labels asociadas a los inputs (htmlFor/id, cátedra Login.md §8)', () => {
     renderLogin();
 
-    expect(screen.queryByLabelText('Usuario')).toBeNull();
-    expect(screen.queryByLabelText('Contraseña')).toBeNull();
+    expect(screen.getByLabelText('Usuario')).toBeInTheDocument();
+    expect(screen.getByLabelText('Contraseña')).toBeInTheDocument();
   });
 
   it('credenciales válidas: llama a api.login con las credenciales, guarda el token en localStorage y navega al inicio', async () => {
@@ -90,8 +90,7 @@ describe('Login (contenedor con api mockeada)', () => {
     expect(screen.getByPlaceholderText('Ingrese su usuario')).toBeInTheDocument();
     // No persiste nada tras el rechazo
     expect(localStorage.getItem('token')).toBeNull();
-    // HALLAZGO: el error se muestra en un div sin role="alert"; este spec
-    // documenta el comportamiento real (la cátedra pide role="alert").
-    expect(screen.queryByRole('alert')).toBeNull();
+    // El error se anuncia con role="alert" (cátedra §4.4, corregido 2026-11-20)
+    expect(screen.getByRole('alert')).toHaveTextContent('Credenciales inválidas');
   });
 });

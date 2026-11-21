@@ -81,14 +81,26 @@ describe('Protección de rutas (App)', () => {
   // render. El primer render de ProtectedRoute evalúa puedeAcceder(undefined)
   // → false, y redirige a rutaInicial(undefined) = '/'. Al recargar con sesión
   // guardada, un rol con acceso al Dashboard termina en '/' y no en la ruta
-  // pedida. Este spec documenta ese rebote; arreglarlo tocaría AuthContext.
-  it('documenta el rebote por hidratación: admin que recarga /alumnos con sesión guardada termina en / (Dashboard)', async () => {
+  // Hidratación SINCRÓNICA (corregido 2026-11-20): con sesión guardada, el
+  // primer render ya tiene el usuario y el deep-link se respeta.
+  it('deep-link respeta la URL: admin con sesión guardada recarga /alumnos y se queda ahí', async () => {
     sembrarSesion('admin');
     irA('/alumnos');
     render(<App />);
 
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/');
+    expect(await screen.findByRole('heading', { name: 'Alumnos' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/alumnos');
+  });
+
+  // Dashboard solo rector (regla 2026-11-20): un rol sin acceso a la ruta
+  // pedida es enviado a su ruta inicial por el ProtectedRoute.
+  it('vicerrector que pide / (dashboard solo rector) rebota a su ruta inicial /cursos', async () => {
+    sembrarSesion('vicerrector');
+    irA('/');
+    render(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Cursos' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/cursos');
   });
 
   // Con el usuario ya hidratado, la navegación por el menú respeta el acceso:

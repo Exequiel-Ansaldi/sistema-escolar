@@ -173,17 +173,16 @@ describe('Input (presentacional)', () => {
   // htmlFor y el <input> no tiene id, así que getByLabelText NO encuentra el
   // campo. Este spec documenta el comportamiento real de ui.tsx; arreglarlo
   // sería modificar código fuente fuera del alcance de este batch de specs.
-  it('documenta que la label NO está asociada al input (falta htmlFor/id)', () => {
+  it('label asociada al input con htmlFor/id (cátedra: getByLabelText funciona)', () => {
     render(<Input label="Correo" placeholder="tuc@ejemplo.com" />);
 
-    expect(screen.queryByLabelText('Correo')).toBeNull();
+    const campo = screen.getByLabelText('Correo');
+    expect(campo).toHaveAttribute('placeholder', 'tuc@ejemplo.com');
   });
 
-  // La cátedra espera "onChange entrega el valor directo"; el componente real
-  // reenvía el evento del DOM y el valor llega en event.target.value (así lo
-  // usan las páginas: onChange={e => set...(e.target.value)}). Spec de
-  // comportamiento real.
-  it('onChange entrega el evento del DOM: el valor llega en event.target.value', async () => {
+  // Contrato de la cátedra (Login.md §6.1): onChange entrega el VALOR y no el
+  // evento del DOM, así el componente no depende del DOM.
+  it('onChange entrega el VALOR directo, no el evento', async () => {
     const user = userEvent.setup();
     const recibidos: string[] = [];
     function CampoControlado() {
@@ -192,7 +191,7 @@ describe('Input (presentacional)', () => {
         <Input
           label="Nombre"
           value={valor}
-          onChange={(e) => { recibidos.push(e.target.value); setValor(e.target.value); }}
+          onChange={(v) => { recibidos.push(v); setValor(v); }}
         />
       );
     }
