@@ -21,7 +21,9 @@ export const ROL_LABELS: Record<string, string> = {
 };
 
 export const RUTAS_POR_ROL: Record<string, Rol[]> = {
-  '/': [ROLES.VICERRECTOR],
+  // Regla 2026-11-20: el dashboard ('/') es SOLO para rector (admin/rector
+  // pasan siempre por el check especial; vicerrector ya no).
+  '/': [ROLES.RECTOR],
   '/alumnos': [ROLES.SECRETARIA_ALUMNADO, ROLES.ASESORIA_PEDAGOGICA],
   '/inscripciones': [ROLES.SECRETARIA_ALUMNADO],
   '/docentes': [ROLES.SECRETARIA_PERSONAL],
@@ -35,6 +37,24 @@ export const RUTAS_POR_ROL: Record<string, Rol[]> = {
   '/modulos-mensuales': [ROLES.PRECEPTOR_MANANA],
   '/calendario': [ROLES.PRECEPTOR_MANANA],
 };
+
+// Orden del menú lateral (Layout): rutaInicial debe ser determinista y
+// coincidir con lo que el usuario ve primero en el sidebar.
+export const ORDEN_RUTAS = [
+  '/',
+  '/alumnos',
+  '/cursos',
+  '/docentes',
+  '/materias',
+  '/carga-horaria',
+  '/inscripciones',
+  '/asistencias',
+  '/calificaciones',
+  '/actas',
+  '/licencias',
+  '/modulos-mensuales',
+  '/calendario',
+] as const;
 
 // Roles con permiso de ESCRITURA por módulo (espeja los @Roles de POST/PUT/DELETE
 // del backend; la defensa real siguen siendo los guards). Solo-lectura = sin botones.
@@ -63,15 +83,18 @@ export function puedeEscribir(rol: string | undefined, path: string): boolean {
 export function puedeAcceder(rol: string | undefined, path: string): boolean {
   if (!rol) return false;
   if (rol === ROLES.ADMIN || rol === ROLES.RECTOR) return true;
+  // Default-deny: una ruta sin entrada en el mapa queda bloqueada para
+  // cualquier rol sin permiso explícito (antes se permitía, inconsistente
+  // con los guards del backend).
   const permitidos = RUTAS_POR_ROL[path];
-  if (!permitidos) return true;
-  return permitidos.includes(rol as Rol);
+  return permitidos?.includes(rol as Rol) ?? false;
 }
 
 export function rutaInicial(rol: string | undefined): string {
-  if (puedeAcceder(rol, '/')) return '/';
-  for (const [path, permitidos] of Object.entries(RUTAS_POR_ROL)) {
-    if (permitidos.includes(rol as Rol)) return path;
+  // Orden del menú (ORDEN_RUTAS), no orden de inserción del mapa:
+  // rutaInicial coincide con lo primero que el rol ve en el sidebar.
+  for (const path of ORDEN_RUTAS) {
+    if (puedeAcceder(rol, path)) return path;
   }
   return '/';
 }
